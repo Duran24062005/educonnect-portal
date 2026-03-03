@@ -10,10 +10,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { Loader2, Camera } from 'lucide-react';
+import { getMediaUrl } from '@/lib/media';
 
 const passwordSchema = z
   .object({
@@ -34,6 +35,7 @@ const ProfilePage = () => {
   const initials = person
     ? `${person.first_name[0]}${person.last_name[0]}`.toUpperCase()
     : user?.email?.[0]?.toUpperCase() || 'U';
+  const profilePhotoUrl = getMediaUrl(person?.profile_photo_url || person?.profile_photo);
 
   const {
     register,
@@ -88,6 +90,7 @@ const ProfilePage = () => {
             <div className="flex items-center gap-4">
               <div className="relative">
                 <Avatar className="w-20 h-20">
+                  <AvatarImage src={profilePhotoUrl || undefined} alt={person ? `${person.first_name} ${person.last_name}` : user?.email} />
                   <AvatarFallback className="bg-primary text-primary-foreground text-xl font-bold">
                     {initials}
                   </AvatarFallback>

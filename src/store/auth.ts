@@ -18,6 +18,9 @@ export interface Person {
   document_number: string;
   phone: string;
   profile_photo?: string;
+  profile_photo_url?: string;
+  role?: string;
+  status?: string;
 }
 
 interface AuthState {
@@ -31,17 +34,63 @@ interface AuthState {
   initialize: () => Promise<void>;
 }
 
+const parseStoredJson = <T>(key: string): T | null => {
+  const raw = localStorage.getItem(key);
+  if (!raw || raw === 'undefined' || raw === 'null') return null;
+
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    localStorage.removeItem(key);
+    return null;
+  }
+};
+
+const normalizeRole = (role?: string) => {
+  if (!role) return role;
+  const normalized = role.toLowerCase();
+  if (normalized === 'admin') return 'Admin';
+  if (normalized === 'teacher') return 'Teacher';
+  if (normalized === 'student') return 'Student';
+  return role;
+};
+
+const normalizeStatus = (status?: string) => status?.toLowerCase();
+
+const normalizeUser = (
+  user: Partial<User> | null | undefined,
+  person?: Partial<Person> | null,
+  profileComplete?: boolean
+): User | null => {
+  if (!user) return null;
+
+  return {
+    ...(user as User),
+    role: normalizeRole(user.role ?? person?.role),
+    status: normalizeStatus(user.status ?? person?.status),
+    profile_complete: user.profile_complete ?? profileComplete ?? Boolean(person),
+  };
+};
+
+const initialPerson = parseStoredJson<Person>('person');
+const initialUser = normalizeUser(parseStoredJson<User>('user'), initialPerson);
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   token: localStorage.getItem('token'),
-  user: JSON.parse(localStorage.getItem('user') || 'null'),
-  person: JSON.parse(localStorage.getItem('person') || 'null'),
+  user: initialUser,
+  person: initialPerson,
   isLoading: true,
 
   setAuth: (token, user, person = null) => {
+    const normalizedUser = normalizeUser(user, person);
     localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(user));
-    if (person) localStorage.setItem('person', JSON.stringify(person));
-    set({ token, user, person });
+    localStorage.setItem('user', JSON.stringify(normalizedUser));
+    if (person) {
+      localStorage.setItem('person', JSON.stringify(person));
+    } else {
+      localStorage.removeItem('person');
+    }
+    set({ token, user: normalizedUser, person });
   },
 
   logout: () => {
@@ -55,10 +104,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   fetchMe: async () => {
     try {
       const res = await authApi.me();
-      const { user, person } = res.data;
-      localStorage.setItem('user', JSON.stringify(user));
+      const payload = res.data?.data ?? res.data;
+      const user = payload?.user;
+      const person = payload?.person ?? null;
+      const profileComplete = payload?.profile_complete;
+
+      if (!user) throw new Error('Invalid /me payload: missing user');
+
+      const normalizedUser = normalizeUser(user, person, profileComplete);
+      if (!normalizedUser) throw new Error('Invalid normalized user');
+
+      localStorage.setItem('user', JSON.stringify(normalizedUser));
       if (person) localStorage.setItem('person', JSON.stringify(person));
-      set({ user, person });
+      else localStorage.removeItem('person');
+      set({ user: normalizedUser, person });
     } catch {
       get().logout();
     }
@@ -69,10 +128,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (token) {
       try {
         const res = await authApi.me();
-        const { user, person } = res.data;
-        localStorage.setItem('user', JSON.stringify(user));
+        const payload = res.data?.data ?? res.data;
+        const user = payload?.user;
+        const person = payload?.person ?? null;
+        const profileComplete = payload?.profile_complete;
+
+        if (!user) throw new Error('Invalid /me payload: missing user');
+
+        const normalizedUser = normalizeUser(user, person, profileComplete);
+        if (!normalizedUser) throw new Error('Invalid normalized user');
+
+        localStorage.setItem('user', JSON.stringify(normalizedUser));
         if (person) localStorage.setItem('person', JSON.stringify(person));
-        set({ user, person, isLoading: false });
+        else localStorage.removeItem('person');
+        set({ user: normalizedUser, person, isLoading: false });
       } catch {
         get().logout();
         set({ isLoading: false });

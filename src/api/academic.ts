@@ -4,7 +4,17 @@ export const academicApi = {
   // School Years
   getSchoolYears: () => api.get('/api/academic/school-years'),
   createSchoolYear: (data: any) => api.post('/api/academic/school-years', data),
-  getActiveSchoolYear: () => api.get('/api/academic/school-years/active'),
+  getActiveSchoolYear: async () => {
+    const res = await api.get('/api/academic/school-years');
+    const payload = res.data?.data ?? res.data;
+    const years = Array.isArray(payload?.schoolYears)
+      ? payload.schoolYears
+      : Array.isArray(payload)
+        ? payload
+        : [];
+    const activeYear = years.find((year: any) => year?.is_active) || null;
+    return { ...res, data: activeYear };
+  },
   activateSchoolYear: (id: string) => api.patch(`/api/academic/school-years/${id}/activate`),
   deleteSchoolYear: (id: string) => api.delete(`/api/academic/school-years/${id}`),
 

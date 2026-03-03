@@ -44,18 +44,50 @@ const AdminDashboard = () => {
   const [activeYear, setActiveYear] = useState<any>(null);
   const [pending, setPending] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const roleStats = stats?.by_role || {};
+  const statusStats = stats?.by_status || {};
 
   useEffect(() => {
     const load = async () => {
+      const getActiveYearWithFallback = async () => {
+        try {
+          return await academicApi.getActiveSchoolYear();
+        } catch {
+          const yearsRes = await academicApi.getSchoolYears();
+          const yearsPayload = yearsRes.data?.data ?? yearsRes.data;
+          const years = Array.isArray(yearsPayload?.schoolYears)
+            ? yearsPayload.schoolYears
+            : Array.isArray(yearsPayload)
+              ? yearsPayload
+              : [];
+          const active = years.find((year: any) => year?.is_active) || null;
+          return { data: active };
+        }
+      };
+
       try {
         const [statsRes, yearRes, pendingRes] = await Promise.allSettled([
           usersApi.getStats(),
-          academicApi.getActiveSchoolYear(),
+          getActiveYearWithFallback(),
           usersApi.getPending(),
         ]);
-        if (statsRes.status === 'fulfilled') setStats(statsRes.value.data);
-        if (yearRes.status === 'fulfilled') setActiveYear(yearRes.value.data);
-        if (pendingRes.status === 'fulfilled') setPending(pendingRes.value.data?.users || pendingRes.value.data || []);
+        if (statsRes.status === 'fulfilled') {
+          const statsPayload = statsRes.value.data?.data ?? statsRes.value.data;
+          setStats(statsPayload && typeof statsPayload === 'object' ? statsPayload : null);
+        }
+        if (yearRes.status === 'fulfilled') {
+          const yearPayload = yearRes.value.data?.data ?? yearRes.value.data;
+          setActiveYear(yearPayload && typeof yearPayload === 'object' ? yearPayload : null);
+        }
+        if (pendingRes.status === 'fulfilled') {
+          const pendingPayload = pendingRes.value.data?.data ?? pendingRes.value.data;
+          const pendingList = Array.isArray(pendingPayload?.users)
+            ? pendingPayload.users
+            : Array.isArray(pendingPayload)
+              ? pendingPayload
+              : [];
+          setPending(pendingList);
+        }
       } catch {} finally {
         setLoading(false);
       }
@@ -72,9 +104,9 @@ const AdminDashboard = () => {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard title="Total Usuarios" value={stats?.total || 0} icon={Users} loading={loading} />
-        <StatCard title="Estudiantes" value={stats?.students || 0} icon={GraduationCap} loading={loading} />
-        <StatCard title="Docentes" value={stats?.teachers || 0} icon={UserCheck} loading={loading} />
-        <StatCard title="Pendientes" value={stats?.pending || pending.length || 0} icon={Clock} loading={loading} />
+        <StatCard title="Estudiantes" value={roleStats?.student || stats?.students || 0} icon={GraduationCap} loading={loading} />
+        <StatCard title="Docentes" value={roleStats?.teacher || stats?.teachers || 0} icon={UserCheck} loading={loading} />
+        <StatCard title="Pendientes" value={statusStats?.pending || stats?.pending || pending.length || 0} icon={Clock} loading={loading} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">

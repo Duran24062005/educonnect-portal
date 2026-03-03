@@ -37,10 +37,15 @@ const LoginPage = () => {
     setLoading(true);
     try {
       const res = await authApi.login(data);
-      const { token, user, person, profile_complete } = res.data;
-      setAuth(token, user, person);
+      const { token, user, person, profile_complete } = res.data.data;
+      const normalizedUser = {
+        ...user,
+        profile_complete: user?.profile_complete ?? profile_complete ?? false,
+      };
 
-      if (!profile_complete) {
+      setAuth(token, normalizedUser, person);
+
+      if (!normalizedUser.profile_complete) {
         navigate('/complete-profile');
       } else {
         toast.success('¡Bienvenido de vuelta!');

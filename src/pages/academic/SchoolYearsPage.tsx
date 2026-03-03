@@ -51,10 +51,32 @@ const SchoolYearsPage = () => {
   useEffect(() => { fetchYears(); }, []);
 
   const handleCreate = async () => {
-    if (!newYear.name) { toast.error('Nombre requerido'); return; }
+    if (!newYear.name) {
+      toast.error('Nombre requerido');
+      return;
+    }
+    if (!newYear.start_date || !newYear.end_date) {
+      toast.error('Fecha de inicio y fin son requeridas');
+      return;
+    }
+    if (new Date(newYear.start_date) >= new Date(newYear.end_date)) {
+      toast.error('La fecha de inicio debe ser antes que la fecha de fin');
+      return;
+    }
+
+    const parsedYear = Number((newYear.name.match(/\d{4}/) || [])[0]);
+    if (!Number.isInteger(parsedYear)) {
+      toast.error('El nombre debe incluir un año válido, por ejemplo: 2026-2027');
+      return;
+    }
+
     setCreating(true);
     try {
-      await academicApi.createSchoolYear(newYear);
+      await academicApi.createSchoolYear({
+        year: parsedYear,
+        start_date: newYear.start_date,
+        end_date: newYear.end_date,
+      });
       toast.success('Año escolar creado');
       setDialogOpen(false);
       setNewYear({ name: '', start_date: '', end_date: '' });

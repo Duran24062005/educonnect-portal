@@ -1,8 +1,9 @@
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/AppSidebar';
 import { useAuthStore } from '@/store/auth';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { getMediaUrl } from '@/lib/media';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +25,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const initials = person
     ? `${person.first_name[0]}${person.last_name[0]}`.toUpperCase()
     : user?.email?.[0]?.toUpperCase() || 'U';
+  const profilePhotoUrl = getMediaUrl(person?.profile_photo_url || person?.profile_photo);
 
   const handleLogout = () => {
     logout();
@@ -54,6 +56,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="flex items-center gap-2 h-auto py-1.5 px-2">
                     <Avatar className="w-8 h-8">
+                      <AvatarImage src={profilePhotoUrl || undefined} alt={displayName} />
                       <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
                         {initials}
                       </AvatarFallback>

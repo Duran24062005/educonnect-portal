@@ -11,7 +11,9 @@ export const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
 export const RoleRoute = ({ children, roles }: { children: React.ReactNode; roles: string[] }) => {
   const { user, isLoading } = useAuthStore();
   if (isLoading) return null;
-  if (!user || !roles.includes(user.role || '')) return <Navigate to="/dashboard" replace />;
+  const userRole = (user?.role || '').toLowerCase();
+  const allowedRoles = roles.map((role) => role.toLowerCase());
+  if (!user || !allowedRoles.includes(userRole)) return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
 };
 

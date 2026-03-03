@@ -35,6 +35,33 @@ const roleColors: Record<string, string> = {
   Student: 'bg-accent text-accent-foreground',
 };
 
+const normalizeRoleLabel = (role?: string) => {
+  if (!role) return 'Sin rol';
+  const normalized = role.toLowerCase();
+  if (normalized === 'admin') return 'Admin';
+  if (normalized === 'teacher') return 'Teacher';
+  if (normalized === 'student') return 'Student';
+  return role;
+};
+
+const normalizeStatus = (status?: string) => {
+  if (!status) return '—';
+  return status.toLowerCase();
+};
+
+const normalizeUserRow = (user: any) => {
+  const person = user?.person || user?.person_id || null;
+  const role = normalizeRoleLabel(user?.role ?? person?.role);
+  const status = normalizeStatus(user?.status ?? person?.status);
+
+  return {
+    ...user,
+    person,
+    role,
+    status,
+  };
+};
+
 const UsersPage = () => {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,14 +75,55 @@ const UsersPage = () => {
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const params: any = { page, limit };
+      const hasLocalFilters = Boolean(search) || roleFilter !== 'all' || statusFilter !== 'all';
+      const params: any = hasLocalFilters ? { page: 1, limit: 1000 } : { page, limit };
       if (search) params.search = search;
       if (roleFilter !== 'all') params.role = roleFilter;
       if (statusFilter !== 'all') params.status = statusFilter;
       const res = await usersApi.list(params);
-      setUsers(res.data.users || res.data || []);
-      setTotal(res.data.total || 0);
+      const payload = res.data?.data ?? res.data;
+      const usersList = Array.isArray(payload?.users)
+        ? payload.users
+        : Array.isArray(payload?.items)
+          ? payload.items
+          : Array.isArray(payload)
+            ? payload
+            : [];
+      const normalizedUsers = usersList.map(normalizeUserRow);
+      const searchTerm = search.trim().toLowerCase();
+      const filteredUsers = normalizedUsers.filter((user) => {
+        const fullName = `${user?.person?.first_name || ''} ${user?.person?.last_name || ''}`.trim().toLowerCase();
+        const email = String(user?.email || '').toLowerCase();
+        const role = String(user?.role || '').toLowerCase();
+        const status = String(user?.status || '').toLowerCase();
+
+        const matchesSearch = !searchTerm || fullName.includes(searchTerm) || email.includes(searchTerm);
+        const matchesRole = roleFilter === 'all' || role === roleFilter.toLowerCase();
+        const matchesStatus = statusFilter === 'all' || status === statusFilter.toLowerCase();
+
+        return matchesSearch && matchesRole && matchesStatus;
+      });
+
+      if (hasLocalFilters) {
+        const start = (page - 1) * limit;
+        const end = start + limit;
+        setUsers(filteredUsers.slice(start, end));
+        setTotal(filteredUsers.length);
+      } else {
+        const paginationTotal =
+          typeof payload?.pagination?.total === 'number'
+            ? payload.pagination.total
+            : typeof payload?.total === 'number'
+              ? payload.total
+              : typeof payload?.count === 'number'
+                ? payload.count
+                : normalizedUsers.length;
+        setUsers(normalizedUsers);
+        setTotal(paginationTotal);
+      }
     } catch {
+      setUsers([]);
+      setTotal(0);
       toast.error('Error al cargar usuarios');
     } finally {
       setLoading(false);
@@ -112,9 +180,9 @@ const UsersPage = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos los roles</SelectItem>
-                  <SelectItem value="Admin">Admin</SelectItem>
-                  <SelectItem value="Teacher">Docente</SelectItem>
-                  <SelectItem value="Student">Estudiante</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="teacher">Docente</SelectItem>
+                  <SelectItem value="student">Estudiante</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
@@ -163,8 +231,8 @@ const UsersPage = () => {
                       <TableRow key={u._id}>
                         <TableCell className="font-medium">{u.email}</TableCell>
                         <TableCell>
-                          <Badge variant="outline" className={roleColors[u.role] || ''}>
-                            {u.role || 'Sin rol'}
+                          <Badge variant="outline" className={roleColors[normalizeRoleLabel(u.role)] || ''}>
+                            {normalizeRoleLabel(u.role)}
                           </Badge>
                         </TableCell>
                         <TableCell>

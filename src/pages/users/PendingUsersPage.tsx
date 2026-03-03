@@ -19,8 +19,21 @@ const PendingUsersPage = () => {
     setLoading(true);
     try {
       const res = await usersApi.getPending();
-      setUsers(res.data?.users || res.data || []);
+      const payload = res.data?.data ?? res.data;
+      const pendingList = Array.isArray(payload?.users)
+        ? payload.users
+        : Array.isArray(payload)
+          ? payload
+          : [];
+
+      const normalized = pendingList.map((user: any) => ({
+        ...user,
+        person: user?.person || user?.person_id || null,
+      }));
+
+      setUsers(normalized);
     } catch {
+      setUsers([]);
       toast.error('Error al cargar usuarios pendientes');
     } finally {
       setLoading(false);
@@ -98,9 +111,9 @@ const PendingUsersPage = () => {
                       <SelectValue placeholder="Asignar rol" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Student">Estudiante</SelectItem>
-                      <SelectItem value="Teacher">Docente</SelectItem>
-                      <SelectItem value="Admin">Admin</SelectItem>
+                      <SelectItem value="student">Estudiante</SelectItem>
+                      <SelectItem value="teacher">Docente</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
                     </SelectContent>
                   </Select>
                   <Button

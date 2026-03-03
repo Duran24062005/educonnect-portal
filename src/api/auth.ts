@@ -27,10 +27,16 @@ export interface ChangePasswordData {
   new_password_confirm: string;
 }
 
+export interface ProfileStatusResponse {
+  profile_complete: boolean;
+  person_status: string | null;
+}
+
 export const authApi = {
   register: (data: RegisterData) => api.post('/api/auth/register', data),
   login: (data: LoginData) => api.post('/api/auth/login', data),
   completeProfile: (data: CompleteProfileData) => api.post('/api/auth/complete-profile', data),
+  profileStatus: () => api.get('/api/auth/profile-status'),
   me: () => api.get('/api/auth/me'),
   logout: () => api.post('/api/auth/logout'),
   changePassword: (data: ChangePasswordData) => api.post('/api/auth/change-password', data),

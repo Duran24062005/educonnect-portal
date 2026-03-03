@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -27,8 +27,9 @@ type FormData = z.infer<typeof schema>;
 
 const CompleteProfilePage = () => {
   const [loading, setLoading] = useState(false);
+  const [checkingStatus, setCheckingStatus] = useState(true);
   const navigate = useNavigate();
-  const { setAuth } = useAuthStore();
+  const { setAuth, fetchMe } = useAuthStore();
 
   const {
     register,
@@ -43,21 +44,69 @@ const CompleteProfilePage = () => {
     },
   });
 
+  useEffect(() => {
+    const checkProfileStatus = async () => {
+      try {
+        const statusRes = await authApi.profileStatus();
+        const statusData = statusRes.data?.data ?? statusRes.data;
+
+        if (statusData?.profile_complete) {
+          await fetchMe();
+          navigate('/dashboard', { replace: true });
+        }
+      } catch {
+        // The guard handles auth redirects; keep the form usable if this check fails.
+      } finally {
+        setCheckingStatus(false);
+      }
+    };
+
+    checkProfileStatus();
+  }, [fetchMe, navigate]);
+
   const onSubmit = async (data: FormData) => {
     setLoading(true);
     try {
+      const statusRes = await authApi.profileStatus();
+      const statusData = statusRes.data?.data ?? statusRes.data;
+
+      if (statusData?.profile_complete) {
+        await fetchMe();
+        toast.success('Tu perfil ya estaba completo. Redirigiendo al panel...');
+        navigate('/dashboard');
+        return;
+      }
+
       const res = await authApi.completeProfile(data as CompleteProfileData);
-      const { user, person } = res.data;
+      const payload = res.data?.data ?? res.data;
+      const { user, person } = payload;
       const token = localStorage.getItem('token')!;
-      setAuth(token, user, person);
+      setAuth(token, { ...user, profile_complete: true }, person);
       toast.success('Perfil completado. Tu cuenta está pendiente de aprobación.');
       navigate('/dashboard');
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Error al completar perfil');
+      const message = err.response?.data?.message || 'Error al completar perfil';
+
+      if (message.toLowerCase().includes('ya fue completado')) {
+        await fetchMe();
+        toast.success('Tu perfil ya estaba completo. Redirigiendo al panel...');
+        navigate('/dashboard');
+        return;
+      }
+
+      toast.error(message);
     } finally {
       setLoading(false);
     }
   };
+
+  if (checkingStatus) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <AuthLayout>
