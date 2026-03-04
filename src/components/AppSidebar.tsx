@@ -10,6 +10,7 @@ import {
   BarChart3,
   Layers,
   Building,
+  Timer,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
@@ -35,6 +36,7 @@ const adminItems = [
 
 const academicItems = [
   { title: 'Años Escolares', url: '/academic/school-years', icon: Calendar },
+  { title: 'Periodos', url: '/academic/periods', icon: Timer },
   { title: 'Grados', url: '/academic/grades', icon: Layers },
   { title: 'Áreas', url: '/academic/areas', icon: BookOpen },
   { title: 'Aulas', url: '/academic/aulas', icon: Building },
@@ -42,6 +44,7 @@ const academicItems = [
 
 const groupItems = [
   { title: 'Grupos', url: '/groups', icon: School },
+  { title: 'Estadísticas', url: '/evaluations/stats', icon: BarChart3 },
 ];
 
 const teacherItems = [

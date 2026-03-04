@@ -43,8 +43,9 @@ const RegisterPage = () => {
     setLoading(true);
     try {
       const res = await authApi.register(data);
-      const { token, user } = res.data;
-      setAuth(token, user);
+      const payload = res.data?.data ?? res.data;
+      const { token, user, profile_complete } = payload;
+      setAuth(token, { ...user, profile_complete: profile_complete ?? false });
       toast.success('Cuenta creada. Completa tu perfil.');
       navigate('/complete-profile');
     } catch (err: any) {

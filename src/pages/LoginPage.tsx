@@ -37,7 +37,8 @@ const LoginPage = () => {
     setLoading(true);
     try {
       const res = await authApi.login(data);
-      const { token, user, person, profile_complete } = res.data.data;
+      const payload = res.data?.data ?? res.data;
+      const { token, user, person, profile_complete } = payload;
       const normalizedUser = {
         ...user,
         profile_complete: user?.profile_complete ?? profile_complete ?? false,

@@ -15,24 +15,26 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { Plus, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Loader2, Pencil } from 'lucide-react';
 
 interface CrudPageProps {
   title: string;
   subtitle: string;
   fetchFn: () => Promise<any>;
   createFn: (data: any) => Promise<any>;
+  updateFn?: (id: string, data: any) => Promise<any>;
   deleteFn: (id: string) => Promise<any>;
   dataKey?: string;
   fields: { key: string; label: string; type?: string }[];
 }
 
-const CrudPage = ({ title, subtitle, fetchFn, createFn, deleteFn, dataKey, fields }: CrudPageProps) => {
+const CrudPage = ({ title, subtitle, fetchFn, createFn, updateFn, deleteFn, dataKey, fields }: CrudPageProps) => {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [formData, setFormData] = useState<Record<string, string>>({});
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const fetchItems = async () => {
     setLoading(true);
@@ -52,13 +54,19 @@ const CrudPage = ({ title, subtitle, fetchFn, createFn, deleteFn, dataKey, field
   const handleCreate = async () => {
     setCreating(true);
     try {
-      await createFn(formData);
-      toast.success(`${title.slice(0, -1)} creado`);
+      if (editingId && updateFn) {
+        await updateFn(editingId, formData);
+        toast.success(`${title.slice(0, -1)} actualizado`);
+      } else {
+        await createFn(formData);
+        toast.success(`${title.slice(0, -1)} creado`);
+      }
       setDialogOpen(false);
       setFormData({});
+      setEditingId(null);
       fetchItems();
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Error al crear');
+      toast.error(err.response?.data?.message || 'Error al guardar');
     } finally {
       setCreating(false);
     }
@@ -84,11 +92,18 @@ const CrudPage = ({ title, subtitle, fetchFn, createFn, deleteFn, dataKey, field
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button><Plus className="w-4 h-4 mr-2" />Nuevo</Button>
+              <Button
+                onClick={() => {
+                  setEditingId(null);
+                  setFormData({});
+                }}
+              >
+                <Plus className="w-4 h-4 mr-2" />Nuevo
+              </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Crear {title.slice(0, -1)}</DialogTitle>
+                <DialogTitle>{editingId ? `Editar ${title.slice(0, -1)}` : `Crear ${title.slice(0, -1)}`}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 {fields.map((f) => (
@@ -103,7 +118,7 @@ const CrudPage = ({ title, subtitle, fetchFn, createFn, deleteFn, dataKey, field
                 ))}
                 <Button onClick={handleCreate} className="w-full" disabled={creating}>
                   {creating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                  Crear
+                  {editingId ? 'Actualizar' : 'Crear'}
                 </Button>
               </div>
             </DialogContent>
@@ -145,23 +160,42 @@ const CrudPage = ({ title, subtitle, fetchFn, createFn, deleteFn, dataKey, field
                           <TableCell key={f.key}>{item[f.key]}</TableCell>
                         ))}
                         <TableCell className="text-right">
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="text-destructive">
-                                <Trash2 className="w-4 h-4" />
+                          <div className="flex items-center justify-end gap-1">
+                            {updateFn && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  const nextData: Record<string, string> = {};
+                                  fields.forEach((field) => {
+                                    nextData[field.key] = String(item[field.key] ?? '');
+                                  });
+                                  setFormData(nextData);
+                                  setEditingId(item._id);
+                                  setDialogOpen(true);
+                                }}
+                              >
+                                <Pencil className="w-4 h-4" />
                               </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>¿Eliminar?</AlertDialogTitle>
-                                <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDelete(item._id)}>Eliminar</AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                            )}
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="text-destructive">
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>¿Eliminar?</AlertDialogTitle>
+                                  <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDelete(item._id)}>Eliminar</AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))
@@ -182,6 +216,7 @@ export const GradesPage = () => (
     subtitle="Gestión de grados académicos"
     fetchFn={academicApi.getGrades}
     createFn={academicApi.createGrade}
+    updateFn={academicApi.updateGrade}
     deleteFn={academicApi.deleteGrade}
     fields={[
       { key: 'name', label: 'Nombre' },
@@ -196,6 +231,7 @@ export const AreasPage = () => (
     subtitle="Áreas de conocimiento"
     fetchFn={academicApi.getAreas}
     createFn={academicApi.createArea}
+    updateFn={academicApi.updateArea}
     deleteFn={academicApi.deleteArea}
     fields={[
       { key: 'name', label: 'Nombre' },
@@ -210,6 +246,7 @@ export const AulasPage = () => (
     subtitle="Aulas físicas de la institución"
     fetchFn={academicApi.getAulas}
     createFn={academicApi.createAula}
+    updateFn={academicApi.updateAula}
     deleteFn={academicApi.deleteAula}
     fields={[
       { key: 'name', label: 'Nombre' },

@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Users, Eye } from 'lucide-react';
+import { Plus, Users, Eye, Pencil, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
@@ -16,6 +16,17 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 const GroupsPage = () => {
   const [years, setYears] = useState<any[]>([]);
@@ -24,6 +35,7 @@ const GroupsPage = () => {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [newGroup, setNewGroup] = useState({ name: '', grade_id: '', aula_id: '', school_year_id: '' });
   const [grades, setGrades] = useState<any[]>([]);
   const [aulas, setAulas] = useState<any[]>([]);
@@ -61,9 +73,16 @@ const GroupsPage = () => {
   const handleCreate = async () => {
     setCreating(true);
     try {
-      await groupsApi.create({ ...newGroup, school_year_id: selectedYear });
-      toast.success('Grupo creado');
+      const payload = { ...newGroup, school_year_id: selectedYear };
+      if (editingId) {
+        await groupsApi.update(editingId, payload);
+        toast.success('Grupo actualizado');
+      } else {
+        await groupsApi.create(payload);
+        toast.success('Grupo creado');
+      }
       setDialogOpen(false);
+      setEditingId(null);
       setNewGroup({ name: '', grade_id: '', aula_id: '', school_year_id: '' });
       const res = await groupsApi.getBySchoolYear(selectedYear);
       setGroups(res.data?.groups || res.data || []);
@@ -72,6 +91,28 @@ const GroupsPage = () => {
     } finally {
       setCreating(false);
     }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await groupsApi.delete(id);
+      toast.success('Grupo eliminado');
+      const res = await groupsApi.getBySchoolYear(selectedYear);
+      setGroups(res.data?.groups || res.data || []);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'No se pudo eliminar el grupo');
+    }
+  };
+
+  const startEdit = (group: any) => {
+    setEditingId(group._id);
+    setNewGroup({
+      name: group.name || '',
+      grade_id: group.grade?._id || '',
+      aula_id: group.aula?._id || '',
+      school_year_id: selectedYear,
+    });
+    setDialogOpen(true);
   };
 
   return (
@@ -95,11 +136,18 @@ const GroupsPage = () => {
             </Select>
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
-                <Button><Plus className="w-4 h-4 mr-2" />Nuevo Grupo</Button>
+                <Button
+                  onClick={() => {
+                    setEditingId(null);
+                    setNewGroup({ name: '', grade_id: '', aula_id: '', school_year_id: '' });
+                  }}
+                >
+                  <Plus className="w-4 h-4 mr-2" />Nuevo Grupo
+                </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Crear Grupo</DialogTitle>
+                  <DialogTitle>{editingId ? 'Editar Grupo' : 'Crear Grupo'}</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div className="space-y-2">
@@ -108,7 +156,7 @@ const GroupsPage = () => {
                   </div>
                   <div className="space-y-2">
                     <Label>Grado</Label>
-                    <Select onValueChange={(v) => setNewGroup({ ...newGroup, grade_id: v })}>
+                    <Select value={newGroup.grade_id} onValueChange={(v) => setNewGroup({ ...newGroup, grade_id: v })}>
                       <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
                       <SelectContent>
                         {grades.map((g: any) => (
@@ -119,7 +167,7 @@ const GroupsPage = () => {
                   </div>
                   <div className="space-y-2">
                     <Label>Aula</Label>
-                    <Select onValueChange={(v) => setNewGroup({ ...newGroup, aula_id: v })}>
+                    <Select value={newGroup.aula_id} onValueChange={(v) => setNewGroup({ ...newGroup, aula_id: v })}>
                       <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
                       <SelectContent>
                         {aulas.map((a: any) => (
@@ -130,7 +178,7 @@ const GroupsPage = () => {
                   </div>
                   <Button onClick={handleCreate} className="w-full" disabled={creating}>
                     {creating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                    Crear Grupo
+                    {editingId ? 'Actualizar Grupo' : 'Crear Grupo'}
                   </Button>
                 </div>
               </DialogContent>
@@ -153,18 +201,47 @@ const GroupsPage = () => {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {groups.map((g) => (
-              <Card key={g._id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate(`/groups/${g._id}`)}>
+              <Card key={g._id} className="hover:shadow-md transition-shadow">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base flex items-center justify-between">
                     {g.name}
                     <Eye className="w-4 h-4 text-muted-foreground" />
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-3">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Users className="w-4 h-4" />
                     <span>{g.grade?.name || 'Sin grado'}</span>
                     {g.aula && <Badge variant="secondary">{g.aula.name}</Badge>}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" size="sm" onClick={() => navigate(`/groups/${g._id}`)}>
+                      Ver
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => startEdit(g)}>
+                      <Pencil className="w-4 h-4 mr-1" /> Editar
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive" size="sm">
+                          <Trash2 className="w-4 h-4 mr-1" /> Eliminar
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>¿Eliminar grupo?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Esta acción no se puede deshacer.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDelete(g._id)}>
+                            Eliminar
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </CardContent>
               </Card>

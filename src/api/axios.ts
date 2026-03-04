@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { toast } from 'sonner';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/';
 
@@ -24,6 +25,9 @@ api.interceptors.response.use(
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';
+    }
+    if (error.response?.status === 403) {
+      toast.error(error.response?.data?.message || 'Sin permisos para esta operación');
     }
     return Promise.reject(error);
   }

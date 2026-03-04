@@ -1,73 +1,98 @@
-# Welcome to your Lovable project
+# EduConnect Portal (Frontend)
 
-## Project info
+Frontend LMS para **EduConnect** construido con React + Vite + TypeScript, conectado al backend real:
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+`https://educonnect-backend-rouge.vercel.app/`
 
-## How can I edit this code?
+## Stack
 
-There are several ways of editing your application.
+- React 18 + Vite
+- Tailwind CSS + shadcn/ui
+- Zustand (estado global de autenticación)
+- Axios (interceptores para `Bearer`, `401`, `403`)
+- React Router v6 (guards por autenticación/rol)
+- React Hook Form + Zod
+- Sonner (toasts)
 
-**Use Lovable**
+## Requisitos
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+- Node.js 18+
+- npm 9+
 
-Changes made via Lovable will be committed automatically to this repo.
+## Instalación
 
-**Use your preferred IDE**
+```bash
+npm install
+```
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Variables de entorno
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+Crear archivo `.env`:
 
-Follow these steps:
+```env
+VITE_API_URL=https://educonnect-backend-rouge.vercel.app
+```
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+## Ejecutar en desarrollo
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## Build de producción
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```bash
+npm run build
+npm run preview
+```
 
-**Use GitHub Codespaces**
+## Flujo de autenticación
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+1. Registro inicial (`/register`) con email y contraseña.
+2. Completar perfil (`/complete-profile`) con token activo.
+3. Login (`/login`) y sesión persistida en `localStorage`.
+4. Guards de rutas:
+- `Private/ProfileComplete`: exige token y perfil completo
+- `RoleRoute`: restringe por `Admin | Teacher | Student`
+- `IncompleteProfileRoute`: permite completar perfil antes del dashboard
 
-## What technologies are used for this project?
+## Módulos implementados
 
-This project is built with:
+### Público
+- `/login`
+- `/register`
+- `/complete-profile`
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### Admin
+- `/dashboard`
+- `/users`
+- `/users/pending`
+- `/academic/school-years`
+- `/academic/periods`
+- `/academic/grades`
+- `/academic/areas`
+- `/academic/aulas`
+- `/groups`
+- `/groups/:id`
+- `/evaluations/stats`
+- `/evaluations/stats/:school_year_id`
 
-## How can I deploy this project?
+### Teacher
+- `/my-groups`
+- `/groups/:id/grade-items`
+- `/groups/:id/scores`
+- `/period-results`
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+### Student
+- `/my-grades`
+- `/my-results`
 
-## Can I connect a custom domain to my Lovable project?
+### Compartida
+- `/profile`
 
-Yes, you can!
+## Notas
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+- El interceptor request agrega `Authorization: Bearer <token>` automáticamente.
+- Respuestas `401` limpian sesión y redirigen a `/login`.
+- Respuestas `403` muestran toast de "Sin permisos".
+- La mayoría de vistas incluye estados de carga (skeleton/spinner), validación y mensajes de error del backend.

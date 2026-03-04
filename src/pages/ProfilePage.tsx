@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -31,6 +31,13 @@ const ProfilePage = () => {
   const { user, person, fetchMe } = useAuthStore();
   const [uploading, setUploading] = useState(false);
   const [changingPw, setChangingPw] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    first_name: '',
+    last_name: '',
+    phone: '',
+    born_date: '',
+  });
 
   const initials = person
     ? `${person.first_name[0]}${person.last_name[0]}`.toUpperCase()
@@ -45,6 +52,16 @@ const ProfilePage = () => {
   } = useForm({
     resolver: zodResolver(passwordSchema),
   });
+
+  useEffect(() => {
+    if (!person) return;
+    setProfileForm({
+      first_name: person.first_name || '',
+      last_name: person.last_name || '',
+      phone: person.phone || '',
+      born_date: person.born_date ? person.born_date.slice(0, 10) : '',
+    });
+  }, [person]);
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -71,6 +88,24 @@ const ProfilePage = () => {
       toast.error(err.response?.data?.message || 'Error al cambiar contraseña');
     } finally {
       setChangingPw(false);
+    }
+  };
+
+  const onProfileSubmit = async () => {
+    if (!user?._id) return;
+    if (!profileForm.first_name || !profileForm.last_name) {
+      toast.error('Nombre y apellido son obligatorios');
+      return;
+    }
+    setSavingProfile(true);
+    try {
+      await usersApi.update(user._id, profileForm);
+      toast.success('Perfil actualizado');
+      await fetchMe();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Error al actualizar perfil');
+    } finally {
+      setSavingProfile(false);
     }
   };
 
@@ -108,20 +143,49 @@ const ProfilePage = () => {
             </div>
 
             {person && (
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-muted-foreground text-xs">Documento</Label>
-                  <p className="text-sm font-medium">{person.document_type} {person.document_number}</p>
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Nombre</Label>
+                    <Input
+                      value={profileForm.first_name}
+                      onChange={(e) => setProfileForm((prev) => ({ ...prev, first_name: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Apellido</Label>
+                    <Input
+                      value={profileForm.last_name}
+                      onChange={(e) => setProfileForm((prev) => ({ ...prev, last_name: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Teléfono</Label>
+                    <Input
+                      value={profileForm.phone}
+                      onChange={(e) => setProfileForm((prev) => ({ ...prev, phone: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Fecha de nacimiento</Label>
+                    <Input
+                      type="date"
+                      value={profileForm.born_date}
+                      onChange={(e) => setProfileForm((prev) => ({ ...prev, born_date: e.target.value }))}
+                    />
+                  </div>
                 </div>
-                <div>
-                  <Label className="text-muted-foreground text-xs">Teléfono</Label>
-                  <p className="text-sm font-medium">{person.phone}</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Documento</Label>
+                    <p className="text-sm font-medium">{person.document_type} {person.document_number}</p>
+                  </div>
                 </div>
-                <div>
-                  <Label className="text-muted-foreground text-xs">Fecha de nacimiento</Label>
-                  <p className="text-sm font-medium">{new Date(person.born_date).toLocaleDateString()}</p>
-                </div>
-              </div>
+                <Button onClick={onProfileSubmit} disabled={savingProfile}>
+                  {savingProfile && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  Guardar perfil
+                </Button>
+              </>
             )}
           </CardContent>
         </Card>
