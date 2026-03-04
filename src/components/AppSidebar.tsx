@@ -11,6 +11,8 @@ import {
   Layers,
   Building,
   Timer,
+  ArrowRightLeft,
+  GitMerge,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
@@ -40,10 +42,12 @@ const academicItems = [
   { title: 'Grados', url: '/academic/grades', icon: Layers },
   { title: 'Áreas', url: '/academic/areas', icon: BookOpen },
   { title: 'Aulas', url: '/academic/aulas', icon: Building },
+  { title: 'Promociones', url: '/academic/promotions', icon: GitMerge },
 ];
 
 const groupItems = [
   { title: 'Grupos', url: '/groups', icon: School },
+  { title: 'Matrículas', url: '/groups/enrollments', icon: ArrowRightLeft },
   { title: 'Estadísticas', url: '/evaluations/stats', icon: BarChart3 },
 ];
 

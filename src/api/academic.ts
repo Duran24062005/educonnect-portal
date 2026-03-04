@@ -1,5 +1,23 @@
 import api from './axios';
 
+export interface CreatePeriodPayload {
+  school_year_id: string;
+  name: string;
+  weight: number;
+  start_date: string;
+  end_date: string;
+}
+
+export interface CreateAulaPayload {
+  name: string;
+  max_capacity: number;
+}
+
+export interface RunPromotionPayload {
+  from_school_year_id: string;
+  to_school_year_id: string;
+}
+
 export const academicApi = {
   // School Years
   getSchoolYears: () => api.get('/api/academic/school-years'),
@@ -20,7 +38,7 @@ export const academicApi = {
 
   // Periods
   getPeriods: (yearId: string) => api.get(`/api/academic/school-years/${yearId}/periods`),
-  createPeriod: (data: any) => api.post('/api/academic/periods', data),
+  createPeriod: (data: CreatePeriodPayload) => api.post('/api/academic/periods', data),
   deletePeriod: (id: string) => api.delete(`/api/academic/periods/${id}`),
 
   // Grades
@@ -37,7 +55,10 @@ export const academicApi = {
 
   // Aulas
   getAulas: () => api.get('/api/academic/aulas'),
-  createAula: (data: any) => api.post('/api/academic/aulas', data),
+  createAula: (data: CreateAulaPayload) => api.post('/api/academic/aulas', data),
   updateAula: (id: string, data: any) => api.put(`/api/academic/aulas/${id}`, data),
   deleteAula: (id: string) => api.delete(`/api/academic/aulas/${id}`),
+
+  // Promotions
+  runPromotions: (data: RunPromotionPayload) => api.post('/api/academic/promotions', data),
 };

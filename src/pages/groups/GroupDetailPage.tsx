@@ -10,6 +10,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { toast } from 'sonner';
 import { Users, BookOpen } from 'lucide-react';
 
+const getPayload = (responseData: any) => responseData?.data ?? responseData;
+
+const getArray = (payload: any, key: string) => {
+  if (!payload) return [];
+  if (Array.isArray(payload?.[key])) return payload[key];
+  if (Array.isArray(payload?.items)) return payload.items;
+  if (Array.isArray(payload)) return payload;
+  return [];
+};
+
 const GroupDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const [group, setGroup] = useState<any>(null);
@@ -26,9 +36,18 @@ const GroupDetailPage = () => {
           groupsApi.getGroupStudents(id),
           groupsApi.getGroupTeachers(id),
         ]);
-        if (groupRes.status === 'fulfilled') setGroup(groupRes.value.data);
-        if (studentsRes.status === 'fulfilled') setStudents(studentsRes.value.data?.students || studentsRes.value.data || []);
-        if (teachersRes.status === 'fulfilled') setTeachers(teachersRes.value.data?.teachers || teachersRes.value.data || []);
+        if (groupRes.status === 'fulfilled') {
+          const payload = getPayload(groupRes.value.data);
+          setGroup(payload?.group ?? payload);
+        }
+        if (studentsRes.status === 'fulfilled') {
+          const payload = getPayload(studentsRes.value.data);
+          setStudents(getArray(payload, 'students'));
+        }
+        if (teachersRes.status === 'fulfilled') {
+          const payload = getPayload(teachersRes.value.data);
+          setTeachers(getArray(payload, 'teachers'));
+        }
       } catch {
         toast.error('Error al cargar grupo');
       } finally {

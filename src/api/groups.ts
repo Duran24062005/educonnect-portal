@@ -1,16 +1,39 @@
 import api from './axios';
 
+export interface CreateGroupPayload {
+  name: string;
+  grade_id: string;
+  school_year_id: string;
+  max_capacity: number;
+}
+
+export interface CreateEnrollmentPayload {
+  student_id: string;
+  group_id: string;
+  school_year_id: string;
+}
+
+export interface TransferEnrollmentPayload {
+  student_id: string;
+  school_year_id: string;
+  to_group_id: string;
+  reason?: string;
+  observations?: string;
+}
+
+export type EnrollmentStatus = 'active' | 'transferred' | 'retired';
+
 export const groupsApi = {
   getBySchoolYear: (yearId: string) => api.get(`/api/groups/school-year/${yearId}`),
   get: (id: string) => api.get(`/api/groups/${id}`),
-  create: (data: any) => api.post('/api/groups', data),
+  create: (data: CreateGroupPayload) => api.post('/api/groups', data),
   update: (id: string, data: any) => api.put(`/api/groups/${id}`, data),
   delete: (id: string) => api.delete(`/api/groups/${id}`),
 
   // Enrollments
-  enroll: (data: { student_id: string; group_id: string; school_year_id: string }) =>
-    api.post('/api/groups/enrollments', data),
-  updateEnrollmentStatus: (id: string, status: string) =>
+  enroll: (data: CreateEnrollmentPayload) => api.post('/api/groups/enrollments', data),
+  transferEnrollment: (data: TransferEnrollmentPayload) => api.post('/api/groups/enrollments/transfer', data),
+  updateEnrollmentStatus: (id: string, status: EnrollmentStatus) =>
     api.patch(`/api/groups/enrollments/${id}/status`, { status }),
   getGroupStudents: (groupId: string) => api.get(`/api/groups/${groupId}/students`),
   getStudentEnrollments: (studentId: string) => api.get(`/api/groups/enrollments/student/${studentId}`),

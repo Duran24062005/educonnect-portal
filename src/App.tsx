@@ -16,9 +16,12 @@ import UsersPage from './pages/users/UsersPage';
 import PendingUsersPage from './pages/users/PendingUsersPage';
 import SchoolYearsPage from './pages/academic/SchoolYearsPage';
 import PeriodsPage from './pages/academic/PeriodsPage';
-import { GradesPage, AreasPage, AulasPage } from './pages/academic/CrudPages';
+import { GradesPage, AreasPage } from './pages/academic/CrudPages';
 import GroupsPage from './pages/groups/GroupsPage';
 import GroupDetailPage from './pages/groups/GroupDetailPage';
+import EnrollmentsPage from './pages/admin/EnrollmentsPage';
+import PromotionsPage from './pages/admin/PromotionsPage';
+import AulasManagementPage from './pages/admin/AulasManagementPage';
 import MyGroupsPage from './pages/teacher/MyGroupsPage';
 import GroupGradeItemsPage from './pages/teacher/GroupGradeItemsPage';
 import GroupScoresPage from './pages/teacher/GroupScoresPage';
@@ -75,9 +78,11 @@ const App = () => (
             <Route path="/academic/periods" element={<ProfileCompleteGuard><RoleRoute roles={['Admin']}><PeriodsPage /></RoleRoute></ProfileCompleteGuard>} />
             <Route path="/academic/grades" element={<ProfileCompleteGuard><RoleRoute roles={['Admin']}><GradesPage /></RoleRoute></ProfileCompleteGuard>} />
             <Route path="/academic/areas" element={<ProfileCompleteGuard><RoleRoute roles={['Admin']}><AreasPage /></RoleRoute></ProfileCompleteGuard>} />
-            <Route path="/academic/aulas" element={<ProfileCompleteGuard><RoleRoute roles={['Admin']}><AulasPage /></RoleRoute></ProfileCompleteGuard>} />
+            <Route path="/academic/aulas" element={<ProfileCompleteGuard><RoleRoute roles={['Admin']}><AulasManagementPage /></RoleRoute></ProfileCompleteGuard>} />
+            <Route path="/academic/promotions" element={<ProfileCompleteGuard><RoleRoute roles={['Admin']}><PromotionsPage /></RoleRoute></ProfileCompleteGuard>} />
             <Route path="/groups" element={<ProfileCompleteGuard><RoleRoute roles={['Admin']}><GroupsPage /></RoleRoute></ProfileCompleteGuard>} />
             <Route path="/groups/:id" element={<ProfileCompleteGuard><GroupDetailPage /></ProfileCompleteGuard>} />
+            <Route path="/groups/enrollments" element={<ProfileCompleteGuard><RoleRoute roles={['Admin']}><EnrollmentsPage /></RoleRoute></ProfileCompleteGuard>} />
             <Route path="/evaluations/stats" element={<ProfileCompleteGuard><RoleRoute roles={['Admin']}><EvaluationStatsPage /></RoleRoute></ProfileCompleteGuard>} />
             <Route path="/evaluations/stats/:school_year_id" element={<ProfileCompleteGuard><RoleRoute roles={['Admin']}><EvaluationStatsPage /></RoleRoute></ProfileCompleteGuard>} />
 

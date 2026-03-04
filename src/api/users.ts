@@ -2,6 +2,9 @@ import api from './axios';
 
 const toApiRole = (role?: string) => (role ? role.toLowerCase() : role);
 
+export type AdminUserRole = 'student' | 'teacher' | 'admin' | 'guardian';
+export type AdminUserStatus = 'active' | 'pending' | 'inactive' | 'blocked' | 'egresado';
+
 export const usersApi = {
   list: (params?: { role?: string; status?: string; search?: string; page?: number; limit?: number }) => {
     const normalizedParams = params
@@ -22,8 +25,8 @@ export const usersApi = {
     });
   },
   getPending: () => api.get('/api/users/admin/pending'),
-  approve: (id: string, role: string) => api.post(`/api/users/${id}/approve`, { role: toApiRole(role) }),
-  changeStatus: (id: string, status: string) => api.patch(`/api/users/${id}/status`, { status }),
+  approve: (id: string, role: AdminUserRole) => api.post(`/api/users/${id}/approve`, { role: toApiRole(role) }),
+  changeStatus: (id: string, status: AdminUserStatus) => api.patch(`/api/users/${id}/status`, { status }),
   delete: (id: string) => api.delete(`/api/users/${id}`),
   getStats: () => api.get('/api/users/admin/stats'),
 };
