@@ -28,6 +28,17 @@ interface CrudPageProps {
   fields: { key: string; label: string; type?: string }[];
 }
 
+const pickArray = (res: any, dataKey?: string): any[] => {
+  const payload = res?.data?.data ?? res?.data;
+  if (dataKey && Array.isArray(payload?.[dataKey])) return payload[dataKey];
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.items)) return payload.items;
+  if (Array.isArray(payload?.grades)) return payload.grades;
+  if (Array.isArray(payload?.areas)) return payload.areas;
+  if (Array.isArray(payload?.aulas)) return payload.aulas;
+  return [];
+};
+
 const CrudPage = ({ title, subtitle, fetchFn, createFn, updateFn, deleteFn, dataKey, fields }: CrudPageProps) => {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,8 +51,7 @@ const CrudPage = ({ title, subtitle, fetchFn, createFn, updateFn, deleteFn, data
     setLoading(true);
     try {
       const res = await fetchFn();
-      const data = dataKey ? res.data?.[dataKey] || res.data : res.data;
-      setItems(Array.isArray(data) ? data : []);
+      setItems(pickArray(res, dataKey));
     } catch {
       toast.error(`Error al cargar ${title.toLowerCase()}`);
     } finally {
@@ -52,13 +62,28 @@ const CrudPage = ({ title, subtitle, fetchFn, createFn, updateFn, deleteFn, data
   useEffect(() => { fetchItems(); }, []);
 
   const handleCreate = async () => {
+    const missing = fields.find((field) => {
+      const value = String(formData[field.key] ?? '').trim();
+      return value.length === 0;
+    });
+    if (missing) {
+      toast.error(`El campo ${missing.label} es obligatorio`);
+      return;
+    }
+
+    const payload: Record<string, any> = {};
+    fields.forEach((field) => {
+      const value = String(formData[field.key] ?? '').trim();
+      payload[field.key] = field.type === 'number' ? Number(value) : value;
+    });
+
     setCreating(true);
     try {
       if (editingId && updateFn) {
-        await updateFn(editingId, formData);
+        await updateFn(editingId, payload);
         toast.success(`${title.slice(0, -1)} actualizado`);
       } else {
-        await createFn(formData);
+        await createFn(payload);
         toast.success(`${title.slice(0, -1)} creado`);
       }
       setDialogOpen(false);

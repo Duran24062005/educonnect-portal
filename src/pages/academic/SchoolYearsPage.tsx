@@ -40,7 +40,13 @@ const SchoolYearsPage = () => {
     setLoading(true);
     try {
       const res = await academicApi.getSchoolYears();
-      setYears(res.data?.schoolYears || res.data || []);
+      const payload = res.data?.data ?? res.data;
+      const schoolYears = Array.isArray(payload?.schoolYears)
+        ? payload.schoolYears
+        : Array.isArray(payload)
+          ? payload
+          : [];
+      setYears(schoolYears);
     } catch {
       toast.error('Error al cargar años escolares');
     } finally {

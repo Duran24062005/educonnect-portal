@@ -28,6 +28,18 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 
+const extractArray = (response: any, key?: string): any[] => {
+  const payload = response?.data?.data ?? response?.data;
+  if (key && Array.isArray(payload?.[key])) return payload[key];
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.items)) return payload.items;
+  if (Array.isArray(payload?.groups)) return payload.groups;
+  if (Array.isArray(payload?.grades)) return payload.grades;
+  if (Array.isArray(payload?.aulas)) return payload.aulas;
+  if (Array.isArray(payload?.schoolYears)) return payload.schoolYears;
+  return [];
+};
+
 const GroupsPage = () => {
   const [years, setYears] = useState<any[]>([]);
   const [selectedYear, setSelectedYear] = useState('');
@@ -49,10 +61,10 @@ const GroupsPage = () => {
           academicApi.getGrades(),
           academicApi.getAulas(),
         ]);
-        const y = yearsRes.data?.schoolYears || yearsRes.data || [];
+        const y = extractArray(yearsRes, 'schoolYears');
         setYears(y);
-        setGrades(gradesRes.data?.grades || gradesRes.data || []);
-        setAulas(aulasRes.data?.aulas || aulasRes.data || []);
+        setGrades(extractArray(gradesRes, 'grades'));
+        setAulas(extractArray(aulasRes, 'aulas'));
         const active = y.find((yr: any) => yr.is_active);
         if (active) setSelectedYear(active._id);
         else if (y.length > 0) setSelectedYear(y[0]._id);
@@ -65,15 +77,29 @@ const GroupsPage = () => {
     if (!selectedYear) return;
     setLoading(true);
     groupsApi.getBySchoolYear(selectedYear)
-      .then((res) => setGroups(res.data?.groups || res.data || []))
+      .then((res) => setGroups(extractArray(res, 'groups')))
       .catch(() => toast.error('Error al cargar grupos'))
       .finally(() => setLoading(false));
   }, [selectedYear]);
 
   const handleCreate = async () => {
+    if (!selectedYear) {
+      toast.error('Selecciona un año escolar');
+      return;
+    }
+    if (!newGroup.name.trim() || !newGroup.grade_id || !newGroup.aula_id) {
+      toast.error('Completa nombre, grado y aula');
+      return;
+    }
+
     setCreating(true);
     try {
-      const payload = { ...newGroup, school_year_id: selectedYear };
+      const payload = {
+        name: newGroup.name.trim(),
+        grade_id: newGroup.grade_id,
+        aula_id: newGroup.aula_id,
+        school_year_id: selectedYear,
+      };
       if (editingId) {
         await groupsApi.update(editingId, payload);
         toast.success('Grupo actualizado');
@@ -85,7 +111,7 @@ const GroupsPage = () => {
       setEditingId(null);
       setNewGroup({ name: '', grade_id: '', aula_id: '', school_year_id: '' });
       const res = await groupsApi.getBySchoolYear(selectedYear);
-      setGroups(res.data?.groups || res.data || []);
+      setGroups(extractArray(res, 'groups'));
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Error al crear grupo');
     } finally {
@@ -98,7 +124,7 @@ const GroupsPage = () => {
       await groupsApi.delete(id);
       toast.success('Grupo eliminado');
       const res = await groupsApi.getBySchoolYear(selectedYear);
-      setGroups(res.data?.groups || res.data || []);
+      setGroups(extractArray(res, 'groups'));
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'No se pudo eliminar el grupo');
     }
