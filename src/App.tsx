@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuthStore } from '@/store/auth';
 import { PublicOnlyRoute, IncompleteProfileRoute, ProfileCompleteGuard, RoleRoute } from '@/routes/guards';
 
+import Index from './pages/Index';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import CompleteProfilePage from './pages/CompleteProfilePage';
@@ -58,6 +59,7 @@ const App = () => (
         <AppInitializer>
           <Routes>
             {/* Public routes */}
+            <Route path="/" element={<Index />} />
             <Route path="/login" element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
             <Route path="/register" element={<PublicOnlyRoute><RegisterPage /></PublicOnlyRoute>} />
             <Route path="/complete-profile" element={<IncompleteProfileRoute><CompleteProfilePage /></IncompleteProfileRoute>} />
@@ -90,7 +92,6 @@ const App = () => (
             <Route path="/my-results" element={<ProfileCompleteGuard><RoleRoute roles={['Student']}><MyResultsPage /></RoleRoute></ProfileCompleteGuard>} />
 
             {/* Redirects */}
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AppInitializer>

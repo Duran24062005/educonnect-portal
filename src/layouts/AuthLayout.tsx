@@ -4,7 +4,12 @@ const AuthLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <div className="min-h-screen flex">
       {/* Left branding panel */}
-      <div className="hidden lg:flex lg:w-[480px] xl:w-[560px] bg-primary flex-col justify-between p-10 relative overflow-hidden">
+      <div
+        className="hidden lg:flex lg:w-[480px] xl:w-[560px] flex-col justify-between p-10 relative overflow-hidden bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: "url('/auth_image.avif')" }}
+      >
+        <div className="absolute inset-0 bg-primary/75" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/20 to-black/40" />
         <div className="absolute inset-0 opacity-10">
           <div className="absolute -top-20 -left-20 w-96 h-96 rounded-full bg-primary-foreground/20" />
           <div className="absolute bottom-10 right-10 w-72 h-72 rounded-full bg-primary-foreground/10" />
