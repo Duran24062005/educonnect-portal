@@ -1,5 +1,6 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { usersApi } from '@/api/users';
+import { useUsers, normalizeRoleLabel } from '@/hooks/useUsers';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -35,108 +36,45 @@ const roleColors: Record<string, string> = {
   Student: 'bg-accent text-accent-foreground',
 };
 
-const normalizeRoleLabel = (role?: string) => {
-  if (!role) return 'Sin rol';
-  const normalized = role.toLowerCase();
-  if (normalized === 'admin') return 'Admin';
-  if (normalized === 'teacher') return 'Teacher';
-  if (normalized === 'student') return 'Student';
-  return role;
-};
-
-const normalizeStatus = (status?: string) => {
-  if (!status) return '—';
-  return status.toLowerCase();
-};
-
-const normalizeUserRow = (user: any) => {
-  const person = user?.person || user?.person_id || null;
-  const role = normalizeRoleLabel(user?.role ?? person?.role);
-  const status = normalizeStatus(user?.status ?? person?.status);
-
-  return {
-    ...user,
-    person,
-    role,
-    status,
-  };
-};
-
 const UsersPage = () => {
-  const [users, setUsers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { users: allUsers, isLoading: loading, isError, refetch } = useUsers();
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
   const limit = 10;
 
-  const fetchUsers = useCallback(async () => {
-    setLoading(true);
-    try {
-      const hasLocalFilters = Boolean(search) || roleFilter !== 'all' || statusFilter !== 'all';
-      const params: any = hasLocalFilters ? { page: 1, limit: 1000 } : { page, limit };
-      if (search) params.search = search;
-      if (roleFilter !== 'all') params.role = roleFilter;
-      if (statusFilter !== 'all') params.status = statusFilter;
-      const res = await usersApi.list(params);
-      const payload = res.data?.data ?? res.data;
-      const usersList = Array.isArray(payload?.users)
-        ? payload.users
-        : Array.isArray(payload?.items)
-          ? payload.items
-          : Array.isArray(payload)
-            ? payload
-            : [];
-      const normalizedUsers = usersList.map(normalizeUserRow);
-      const searchTerm = search.trim().toLowerCase();
-      const filteredUsers = normalizedUsers.filter((user) => {
-        const fullName = `${user?.person?.first_name || ''} ${user?.person?.last_name || ''}`.trim().toLowerCase();
-        const email = String(user?.email || '').toLowerCase();
-        const role = String(user?.role || '').toLowerCase();
-        const status = String(user?.status || '').toLowerCase();
+  const filteredUsers = useMemo(() => {
+    const searchTerm = search.trim().toLowerCase();
+    return allUsers.filter((user: any) => {
+      const fullName = `${user?.person?.first_name || ''} ${user?.person?.last_name || ''}`.trim().toLowerCase();
+      const email = String(user?.email || '').toLowerCase();
+      const role = String(user?.role || '').toLowerCase();
+      const status = String(user?.status || '').toLowerCase();
 
-        const matchesSearch = !searchTerm || fullName.includes(searchTerm) || email.includes(searchTerm);
-        const matchesRole = roleFilter === 'all' || role === roleFilter.toLowerCase();
-        const matchesStatus = statusFilter === 'all' || status === statusFilter.toLowerCase();
+      const matchesSearch = !searchTerm || fullName.includes(searchTerm) || email.includes(searchTerm);
+      const matchesRole = roleFilter === 'all' || role === roleFilter.toLowerCase();
+      const matchesStatus = statusFilter === 'all' || status === statusFilter.toLowerCase();
 
-        return matchesSearch && matchesRole && matchesStatus;
-      });
+      return matchesSearch && matchesRole && matchesStatus;
+    });
+  }, [allUsers, search, roleFilter, statusFilter]);
 
-      if (hasLocalFilters) {
-        const start = (page - 1) * limit;
-        const end = start + limit;
-        setUsers(filteredUsers.slice(start, end));
-        setTotal(filteredUsers.length);
-      } else {
-        const paginationTotal =
-          typeof payload?.pagination?.total === 'number'
-            ? payload.pagination.total
-            : typeof payload?.total === 'number'
-              ? payload.total
-              : typeof payload?.count === 'number'
-                ? payload.count
-                : normalizedUsers.length;
-        setUsers(normalizedUsers);
-        setTotal(paginationTotal);
-      }
-    } catch {
-      setUsers([]);
-      setTotal(0);
-      toast.error('Error al cargar usuarios');
-    } finally {
-      setLoading(false);
-    }
-  }, [page, search, roleFilter, statusFilter]);
+  const total = filteredUsers.length;
+  const users = useMemo(() => {
+    const start = (page - 1) * limit;
+    return filteredUsers.slice(start, start + limit);
+  }, [filteredUsers, page]);
 
-  useEffect(() => { fetchUsers(); }, [fetchUsers]);
+  useEffect(() => {
+    if (isError) toast.error('No se pudieron cargar los usuarios');
+  }, [isError]);
 
   const handleDelete = async (id: string) => {
     try {
       await usersApi.delete(id);
       toast.success('Usuario eliminado');
-      fetchUsers();
+      refetch();
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Error al eliminar');
     }
@@ -146,7 +84,7 @@ const UsersPage = () => {
     try {
       await usersApi.changeStatus(id, status);
       toast.success('Estado actualizado');
-      fetchUsers();
+      refetch();
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Error');
     }

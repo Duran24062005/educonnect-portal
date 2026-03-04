@@ -47,7 +47,7 @@ const PeriodsPage = () => {
   const [loadingPeriods, setLoadingPeriods] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [newPeriod, setNewPeriod] = useState({ name: '', start_date: '', end_date: '' });
+  const [newPeriod, setNewPeriod] = useState({ name: '', weight: '', start_date: '', end_date: '' });
 
   useEffect(() => {
     const loadYears = async () => {
@@ -99,25 +99,45 @@ const PeriodsPage = () => {
       return;
     }
 
-    if (!newPeriod.name || !newPeriod.start_date || !newPeriod.end_date) {
+    const name = newPeriod.name.trim();
+    const weight = Number(newPeriod.weight);
+    const startDate = newPeriod.start_date;
+    const endDate = newPeriod.end_date;
+
+    if (!name || !newPeriod.weight || !startDate || !endDate) {
       toast.error('Completa todos los campos');
       return;
     }
 
-    if (new Date(newPeriod.start_date) >= new Date(newPeriod.end_date)) {
+    if (Number.isNaN(weight) || weight < 0 || weight > 1) {
+      toast.error('El peso debe estar entre 0 y 1');
+      return;
+    }
+
+    if (new Date(startDate) >= new Date(endDate)) {
       toast.error('La fecha inicial debe ser menor a la final');
       return;
     }
 
     setCreating(true);
     try {
-      await academicApi.createPeriod({ ...newPeriod, school_year_id: selectedYear });
+      await academicApi.createPeriod({
+        name,
+        weight,
+        start_date: startDate,
+        end_date: endDate,
+        school_year_id: selectedYear,
+      });
       toast.success('Periodo creado');
       setDialogOpen(false);
-      setNewPeriod({ name: '', start_date: '', end_date: '' });
+      setNewPeriod({ name: '', weight: '', start_date: '', end_date: '' });
       await loadPeriods(selectedYear);
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'No se pudo crear el periodo');
+      const message =
+        err.response?.data?.message ||
+        err.response?.data?.error?.message ||
+        'No se pudo crear el periodo';
+      toast.error(message);
     } finally {
       setCreating(false);
     }
@@ -173,6 +193,18 @@ const PeriodsPage = () => {
                       placeholder="Periodo 1"
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label>Peso (0 - 1)</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                      value={newPeriod.weight}
+                      onChange={(e) => setNewPeriod((prev) => ({ ...prev, weight: e.target.value }))}
+                      placeholder="0.25"
+                    />
+                  </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Fecha inicio</Label>
@@ -221,7 +253,9 @@ const PeriodsPage = () => {
                     <CardContent className="pt-6 space-y-3">
                       <div className="flex items-center justify-between gap-2">
                         <h3 className="font-semibold">{period.name || period.title}</h3>
-                        <Badge variant="outline">Periodo</Badge>
+                        <Badge variant="outline">
+                          Peso: {typeof period.weight === 'number' ? period.weight : Number(period.weight || 0)}
+                        </Badge>
                       </div>
                       <p className="text-sm text-muted-foreground">
                         {period.start_date ? new Date(period.start_date).toLocaleDateString() : 'Sin fecha'} - {period.end_date ? new Date(period.end_date).toLocaleDateString() : 'Sin fecha'}

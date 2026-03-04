@@ -48,23 +48,20 @@ const GroupsPage = () => {
   const [creating, setCreating] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [newGroup, setNewGroup] = useState({ name: '', grade_id: '', aula_id: '', school_year_id: '' });
+  const [newGroup, setNewGroup] = useState({ name: '', grade_id: '', max_capacity: '' });
   const [grades, setGrades] = useState<any[]>([]);
-  const [aulas, setAulas] = useState<any[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [yearsRes, gradesRes, aulasRes] = await Promise.all([
+        const [yearsRes, gradesRes] = await Promise.all([
           academicApi.getSchoolYears(),
           academicApi.getGrades(),
-          academicApi.getAulas(),
         ]);
         const y = extractArray(yearsRes, 'schoolYears');
         setYears(y);
         setGrades(extractArray(gradesRes, 'grades'));
-        setAulas(extractArray(aulasRes, 'aulas'));
         const active = y.find((yr: any) => yr.is_active);
         if (active) setSelectedYear(active._id);
         else if (y.length > 0) setSelectedYear(y[0]._id);
@@ -87,8 +84,13 @@ const GroupsPage = () => {
       toast.error('Selecciona un año escolar');
       return;
     }
-    if (!newGroup.name.trim() || !newGroup.grade_id || !newGroup.aula_id) {
-      toast.error('Completa nombre, grado y aula');
+    const capacity = Number(newGroup.max_capacity);
+    if (!newGroup.name.trim() || !newGroup.grade_id || !newGroup.max_capacity) {
+      toast.error('Completa nombre, grado y capacidad máxima');
+      return;
+    }
+    if (Number.isNaN(capacity) || capacity <= 0) {
+      toast.error('La capacidad máxima debe ser mayor a 0');
       return;
     }
 
@@ -97,7 +99,7 @@ const GroupsPage = () => {
       const payload = {
         name: newGroup.name.trim(),
         grade_id: newGroup.grade_id,
-        aula_id: newGroup.aula_id,
+        max_capacity: capacity,
         school_year_id: selectedYear,
       };
       if (editingId) {
@@ -109,7 +111,7 @@ const GroupsPage = () => {
       }
       setDialogOpen(false);
       setEditingId(null);
-      setNewGroup({ name: '', grade_id: '', aula_id: '', school_year_id: '' });
+      setNewGroup({ name: '', grade_id: '', max_capacity: '' });
       const res = await groupsApi.getBySchoolYear(selectedYear);
       setGroups(extractArray(res, 'groups'));
     } catch (err: any) {
@@ -135,8 +137,7 @@ const GroupsPage = () => {
     setNewGroup({
       name: group.name || '',
       grade_id: group.grade?._id || '',
-      aula_id: group.aula?._id || '',
-      school_year_id: selectedYear,
+      max_capacity: String(group.max_capacity ?? ''),
     });
     setDialogOpen(true);
   };
@@ -165,7 +166,7 @@ const GroupsPage = () => {
                 <Button
                   onClick={() => {
                     setEditingId(null);
-                    setNewGroup({ name: '', grade_id: '', aula_id: '', school_year_id: '' });
+                    setNewGroup({ name: '', grade_id: '', max_capacity: '' });
                   }}
                 >
                   <Plus className="w-4 h-4 mr-2" />Nuevo Grupo
@@ -192,15 +193,14 @@ const GroupsPage = () => {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Aula</Label>
-                    <Select value={newGroup.aula_id} onValueChange={(v) => setNewGroup({ ...newGroup, aula_id: v })}>
-                      <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                      <SelectContent>
-                        {aulas.map((a: any) => (
-                          <SelectItem key={a._id} value={a._id}>{a.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Label>Capacidad máxima</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={newGroup.max_capacity}
+                      onChange={(e) => setNewGroup({ ...newGroup, max_capacity: e.target.value })}
+                      placeholder="35"
+                    />
                   </div>
                   <Button onClick={handleCreate} className="w-full" disabled={creating}>
                     {creating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
@@ -238,7 +238,7 @@ const GroupsPage = () => {
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Users className="w-4 h-4" />
                     <span>{g.grade?.name || 'Sin grado'}</span>
-                    {g.aula && <Badge variant="secondary">{g.aula.name}</Badge>}
+                    <Badge variant="secondary">Cupo: {g.max_capacity ?? '-'}</Badge>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Button variant="outline" size="sm" onClick={() => navigate(`/groups/${g._id}`)}>

@@ -275,8 +275,7 @@ export const AulasPage = () => (
     deleteFn={academicApi.deleteAula}
     fields={[
       { key: 'name', label: 'Nombre' },
-      { key: 'capacity', label: 'Capacidad', type: 'number' },
-      { key: 'location', label: 'Ubicación' },
+      { key: 'max_capacity', label: 'Capacidad Máxima', type: 'number' },
     ]}
   />
 );
