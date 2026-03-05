@@ -5,7 +5,8 @@ const AuthLayout = ({ children }: { children: React.ReactNode }) => {
     <div className="min-h-screen flex">
       {/* Left branding panel */}
       <div
-        className="hidden lg:flex lg:w-[480px] xl:w-[560px] flex-col justify-between p-10 relative overflow-hidden bg-cover bg-center bg-no-repeat"
+        className="hidden lg:flex lg:w-[600px] xl:w-[760px] flex-col justify-between p-10 relative overflow-hidden bg-cover bg-center bg-no-repeat
+        rounded-tr-3xl"
         style={{ backgroundImage: "url('/auth_image.avif')" }}
       >
         <div className="absolute inset-0 bg-primary/75" />
@@ -18,7 +19,11 @@ const AuthLayout = ({ children }: { children: React.ReactNode }) => {
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 rounded-lg bg-primary-foreground/20 flex items-center justify-center">
-              <GraduationCap className="w-6 h-6 text-primary-foreground" />
+              <img
+                src="https://edu-connect-beta.vercel.app/img/EduConectLogo.png"
+                alt="Logo EduConnect"
+                className="w-7 h-7 object-contain"
+              />
             </div>
             <span className="text-2xl font-display font-bold text-primary-foreground">EduConnect</span>
           </div>
