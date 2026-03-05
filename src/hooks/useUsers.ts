@@ -46,20 +46,38 @@ const parseUsersFromResponse = (response: any) => {
   return usersList.map(normalizeUserRow);
 };
 
+const getPaginationMeta = (response: any) => {
+  const payload = response?.data?.data ?? response?.data ?? {};
+  const total = payload?.pagination?.total ?? payload?.total ?? payload?.count;
+  const pages = payload?.pagination?.pages ?? payload?.pages;
+  return {
+    total: typeof total === 'number' ? total : undefined,
+    pages: typeof pages === 'number' ? pages : undefined,
+  };
+};
+
 const fetchAllUsers = async () => {
-  try {
-    const response = await usersApi.list({ page: 1, limit: 1000 });
-    const users = parseUsersFromResponse(response);
-    if (users.length > 0) return users;
-  } catch {
-    // Fallback below
+  const pageSize = 50;
+  let page = 1;
+  let hasMore = true;
+  const all: any[] = [];
+
+  while (hasMore) {
+    const response = await usersApi.list({ page, limit: pageSize });
+    const chunk = parseUsersFromResponse(response);
+    all.push(...chunk);
+
+    const meta = getPaginationMeta(response);
+    if (meta.pages) hasMore = page < meta.pages;
+    else if (meta.total !== undefined) hasMore = all.length < meta.total;
+    else hasMore = chunk.length === pageSize;
+
+    page += 1;
+    if (page > 100) hasMore = false;
   }
 
-  const fallbackResponse = await usersApi.list();
-  const fallbackUsers = parseUsersFromResponse(fallbackResponse);
-
   const unique = new Map<string, any>();
-  fallbackUsers.forEach((user) => {
+  all.forEach((user) => {
     if (user?._id) unique.set(user._id, user);
   });
   return Array.from(unique.values());
@@ -72,6 +90,7 @@ export const useUsers = () => {
     staleTime: 5 * 60 * 1000,
     gcTime: 15 * 60 * 1000,
     refetchOnWindowFocus: false,
+    retry: 1,
   });
 
   return {

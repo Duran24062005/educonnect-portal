@@ -15,6 +15,8 @@ export const usersApi = {
       : params;
     return api.get('/api/users', { params: normalizedParams });
   },
+  listByRole: (role: string, params?: { page?: number; limit?: number }) =>
+    api.get(`/api/users/role/${role.toLowerCase()}`, { params }),
   get: (id: string) => api.get(`/api/users/${id}`),
   update: (id: string, data: any) => api.put(`/api/users/${id}`, data),
   uploadPhoto: (id: string, file: File) => {

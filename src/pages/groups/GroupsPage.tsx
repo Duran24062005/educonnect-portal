@@ -40,6 +40,17 @@ const extractArray = (response: any, key?: string): any[] => {
   return [];
 };
 
+const resolveGradeName = (group: any, grades: any[]) => {
+  if (group?.grade?.name) return group.grade.name;
+  if (typeof group?.grade_id === 'object' && group?.grade_id?.name) return group.grade_id.name;
+
+  const gradeId = typeof group?.grade_id === 'string' ? group.grade_id : group?.grade?._id;
+  if (!gradeId) return null;
+
+  const matched = grades.find((grade) => grade?._id === gradeId);
+  return matched?.name || null;
+};
+
 const GroupsPage = () => {
   const [years, setYears] = useState<any[]>([]);
   const [selectedYear, setSelectedYear] = useState('');
@@ -237,7 +248,7 @@ const GroupsPage = () => {
                 <CardContent className="space-y-3">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Users className="w-4 h-4" />
-                    <span>{g.grade?.name || 'Sin grado'}</span>
+                    <span>{resolveGradeName(g, grades) || 'Sin grado'}</span>
                     <Badge variant="secondary">Cupo: {g.max_capacity ?? '-'}</Badge>
                   </div>
                   <div className="flex flex-wrap gap-2">

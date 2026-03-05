@@ -20,7 +20,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { useAdminUiStore } from '@/store/admin-ui';
-import { useAdminGroupsByYear, useAdminSchoolYears } from '@/hooks/admin/useAdminGroups';
+import { useAdminGrades, useAdminGroupsByYear, useAdminSchoolYears } from '@/hooks/admin/useAdminGroups';
 import {
   useAdminStudents,
   useAssignStudentAula,
@@ -38,6 +38,17 @@ const statusClassMap: Record<string, string> = {
   active: 'bg-success/10 text-success border-success/20',
   transferred: 'bg-info/10 text-info border-info/20',
   retired: 'bg-destructive/10 text-destructive border-destructive/20',
+};
+
+const resolveGradeName = (group: any, grades: any[]) => {
+  if (group?.grade?.name) return group.grade.name;
+  if (typeof group?.grade_id === 'object' && group?.grade_id?.name) return group.grade_id.name;
+
+  const gradeId = typeof group?.grade_id === 'string' ? group.grade_id : group?.grade?._id;
+  if (!gradeId) return null;
+
+  const grade = grades.find((item: any) => item?._id === gradeId);
+  return grade?.name || null;
 };
 
 const EnrollmentsPage = () => {
@@ -60,6 +71,7 @@ const EnrollmentsPage = () => {
 
   const { data: years = [], isLoading: loadingYears } = useAdminSchoolYears();
   const { data: groups = [], isLoading: loadingGroups } = useAdminGroupsByYear(enrollmentYearId);
+  const { data: grades = [] } = useAdminGrades();
   const { data: students = [], isLoading: loadingStudents } = useAdminStudents();
   const { data: aulas = [] } = useAdminAulas();
 
@@ -80,8 +92,12 @@ const EnrollmentsPage = () => {
   }, [enrollmentYearId, years, setEnrollmentYearId]);
 
   const normalizedGroups = useMemo(
-    () => groups.map((group: any) => ({ id: group._id, label: `${group.name} · ${group.grade?.name || 'Sin grado'}` })),
-    [groups]
+    () =>
+      groups.map((group: any) => ({
+        id: group._id,
+        label: `${group.name} · ${resolveGradeName(group, grades) || 'Sin grado'}`,
+      })),
+    [groups, grades]
   );
 
   const normalizedStudents = useMemo(
@@ -112,6 +128,10 @@ const EnrollmentsPage = () => {
       refetchGroupStudents();
       refetchStudentEnrollments();
     } catch (err: any) {
+      if (err?.response?.status === 404) {
+        toast.error('La ruta de matrículas no está disponible en este backend local (404)');
+        return;
+      }
       toast.error(err.response?.data?.message || 'No se pudo crear la matrícula');
     }
   };
