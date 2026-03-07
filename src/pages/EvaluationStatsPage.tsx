@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { isValidObjectId } from '@/lib/object-id';
+import LightweightCategoryChart from '@/components/charts/LightweightCategoryChart';
 
 const toArray = (res: any, key?: string) => {
   const data = res?.data?.data ?? res?.data;
@@ -47,6 +49,12 @@ const EvaluationStatsPage = () => {
   useEffect(() => {
     const yearId = school_year_id || selectedYear;
     if (!yearId) return;
+    if (!isValidObjectId(yearId)) {
+      setStats(null);
+      setLoading(false);
+      toast.error('ID de año escolar inválido');
+      return;
+    }
     setLoading(true);
 
     evaluationsApi
@@ -72,6 +80,43 @@ const EvaluationStatsPage = () => {
     { label: 'Promedio general', value: stats?.general_average ?? stats?.average ?? 0 },
     { label: 'Aprobados', value: stats?.approved_students ?? stats?.approved ?? 0 },
     { label: 'Reprobados', value: stats?.failed_students ?? stats?.failed ?? 0 },
+  ];
+
+  const areaCategories = Array.isArray(stats?.by_area)
+    ? stats.by_area.map((area: any, index: number) => area.name || area.area?.name || `Área ${index + 1}`)
+    : [];
+
+  const averageSeries = [
+    {
+      id: 'average',
+      label: 'Promedio por área',
+      type: 'area' as const,
+      color: '#0f766e',
+      values: Array.isArray(stats?.by_area)
+        ? stats.by_area.map((area: any) => Number(area.average ?? area.avg ?? 0))
+        : [],
+    },
+  ];
+
+  const outcomeSeries = [
+    {
+      id: 'approved',
+      label: 'Aprobados',
+      type: 'histogram' as const,
+      color: '#2563eb',
+      values: Array.isArray(stats?.by_area)
+        ? stats.by_area.map((area: any) => Number(area.passed ?? area.approved ?? 0))
+        : [],
+    },
+    {
+      id: 'failed',
+      label: 'Reprobados',
+      type: 'line' as const,
+      color: '#dc2626',
+      values: Array.isArray(stats?.by_area)
+        ? stats.by_area.map((area: any) => Number(area.failed ?? 0))
+        : [],
+    },
   ];
 
   return (
@@ -111,6 +156,38 @@ const EvaluationStatsPage = () => {
               </CardContent>
             </Card>
           ))}
+        </div>
+
+        <div className="grid gap-4 xl:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Tendencia de Promedios</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <Skeleton className="h-80 w-full" />
+              ) : areaCategories.length > 0 ? (
+                <LightweightCategoryChart categories={areaCategories} series={averageSeries} height={300} />
+              ) : (
+                <p className="text-muted-foreground py-8 text-center">No hay datos para graficar promedios</p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Desempeño por Área</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <Skeleton className="h-80 w-full" />
+              ) : areaCategories.length > 0 ? (
+                <LightweightCategoryChart categories={areaCategories} series={outcomeSeries} height={300} />
+              ) : (
+                <p className="text-muted-foreground py-8 text-center">No hay datos para graficar aprobados y reprobados</p>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         <Card>

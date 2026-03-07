@@ -34,7 +34,7 @@ const SchoolYearsPage = () => {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [newYear, setNewYear] = useState({ name: '', start_date: '', end_date: '' });
+  const [newYear, setNewYear] = useState({ year: '', start_date: '', end_date: '' });
 
   const fetchYears = async () => {
     setLoading(true);
@@ -57,8 +57,8 @@ const SchoolYearsPage = () => {
   useEffect(() => { fetchYears(); }, []);
 
   const handleCreate = async () => {
-    if (!newYear.name) {
-      toast.error('Nombre requerido');
+    if (!newYear.year) {
+      toast.error('Año requerido');
       return;
     }
     if (!newYear.start_date || !newYear.end_date) {
@@ -70,9 +70,9 @@ const SchoolYearsPage = () => {
       return;
     }
 
-    const parsedYear = Number((newYear.name.match(/\d{4}/) || [])[0]);
-    if (!Number.isInteger(parsedYear)) {
-      toast.error('El nombre debe incluir un año válido, por ejemplo: 2026-2027');
+    const parsedYear = Number(newYear.year);
+    if (!Number.isInteger(parsedYear) || parsedYear < 2000) {
+      toast.error('Ingresa un año válido, por ejemplo 2026');
       return;
     }
 
@@ -85,7 +85,7 @@ const SchoolYearsPage = () => {
       });
       toast.success('Año escolar creado');
       setDialogOpen(false);
-      setNewYear({ name: '', start_date: '', end_date: '' });
+      setNewYear({ year: '', start_date: '', end_date: '' });
       fetchYears();
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Error al crear');
@@ -132,11 +132,13 @@ const SchoolYearsPage = () => {
               </DialogHeader>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Nombre</Label>
+                  <Label>Año</Label>
                   <Input
-                    value={newYear.name}
-                    onChange={(e) => setNewYear({ ...newYear, name: e.target.value })}
-                    placeholder="2025-2026"
+                    type="number"
+                    min="2000"
+                    value={newYear.year}
+                    onChange={(e) => setNewYear({ ...newYear, year: e.target.value })}
+                    placeholder="2026"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">

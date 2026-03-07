@@ -14,11 +14,11 @@ export interface LoginData {
 export interface CompleteProfileData {
   first_name: string;
   last_name: string;
-  born_date: string;
   document_type: 'CC' | 'RC' | 'CE';
   document_number: string;
-  phone: string;
-  requested_role: 'Student' | 'Teacher';
+  born_date?: string;
+  phone?: string;
+  requested_role?: 'Student' | 'Teacher' | 'Parent' | 'Guardian';
 }
 
 export interface ChangePasswordData {

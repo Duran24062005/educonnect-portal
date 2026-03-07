@@ -28,7 +28,8 @@ const roleLabel: Record<string, string> = {
   student: 'Estudiante',
   teacher: 'Docente',
   admin: 'Admin',
-  guardian: 'Acudiente',
+  parent: 'Parent/Acudiente',
+  guardian: 'Parent/Acudiente',
 };
 
 const statusLabel: Record<string, string> = {

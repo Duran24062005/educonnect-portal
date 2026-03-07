@@ -11,6 +11,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { extractApiError, mapErrorDetailsByField } from '@/lib/http';
+import { isBlockedAccountStatus } from '@/lib/auth';
+import { setStoredAccountState } from '@/lib/account-state';
 
 const schema = z.object({
   email: z.string().email('Correo electrónico inválido'),
@@ -28,6 +31,7 @@ const LoginPage = () => {
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -48,12 +52,33 @@ const LoginPage = () => {
 
       if (!normalizedUser.profile_complete) {
         navigate('/complete-profile');
+      } else if (isBlockedAccountStatus(normalizedUser.status)) {
+        navigate('/account-status');
       } else {
         toast.success('¡Bienvenido de vuelta!');
         navigate('/dashboard');
       }
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Error al iniciar sesión');
+      const apiError = extractApiError(err);
+      const fieldErrors = mapErrorDetailsByField(err);
+
+      Object.entries(fieldErrors).forEach(([field, message]) => {
+        if (field === 'email' || field === 'password') {
+          setError(field as keyof FormData, { type: 'server', message });
+        }
+      });
+
+      if (err.response?.status === 403) {
+        setStoredAccountState({ status: apiError.status, message: apiError.message });
+        if (apiError.message.toLowerCase().includes('perfil')) {
+          navigate('/complete-profile');
+          return;
+        }
+        navigate('/account-status');
+        return;
+      }
+
+      toast.error(apiError.message || 'Error al iniciar sesión');
     } finally {
       setLoading(false);
     }

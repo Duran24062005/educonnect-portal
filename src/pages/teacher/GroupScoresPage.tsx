@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
 import { Loader2, Save } from 'lucide-react';
+import { isValidObjectId } from '@/lib/object-id';
 
 const unwrap = (res: any, key?: string) => {
   const data = res?.data?.data ?? res?.data;
@@ -30,8 +31,10 @@ const GroupScoresPage = () => {
   const { id } = useParams<{ id: string }>();
   const [students, setStudents] = useState<any[]>([]);
   const [areas, setAreas] = useState<any[]>([]);
+  const [periods, setPeriods] = useState<any[]>([]);
   const [items, setItems] = useState<any[]>([]);
   const [scores, setScores] = useState<any[]>([]);
+  const [selectedPeriod, setSelectedPeriod] = useState('');
   const [selectedArea, setSelectedArea] = useState('');
   const [selectedItem, setSelectedItem] = useState('');
   const [selectedStudent, setSelectedStudent] = useState('');
@@ -40,15 +43,34 @@ const GroupScoresPage = () => {
   const [saving, setSaving] = useState(false);
 
   const loadStudentsAndAreas = async () => {
-    if (!id) return;
+    if (!id || !isValidObjectId(id)) {
+      setLoading(false);
+      toast.error('ID de grupo inválido');
+      return;
+    }
     setLoading(true);
     try {
-      const [studentsRes, areasRes] = await Promise.all([groupsApi.getGroupStudents(id), academicApi.getAreas()]);
+      const [studentsRes, areasRes, yearsRes] = await Promise.all([
+        groupsApi.getGroupStudents(id),
+        academicApi.getAreas(),
+        academicApi.getSchoolYears(),
+      ]);
       const loadedStudents = unwrap(studentsRes, 'students');
       const loadedAreas = unwrap(areasRes, 'areas');
+      const years = unwrap(yearsRes, 'schoolYears');
+      const activeYear = years.find((year: any) => year?.is_active) || years[0];
+
+      if (activeYear?._id) {
+        const periodsRes = await academicApi.getPeriods(activeYear._id);
+        const loadedPeriods = unwrap(periodsRes, 'periods');
+        setPeriods(loadedPeriods);
+        if (loadedPeriods[0]?._id) setSelectedPeriod(loadedPeriods[0]._id);
+      }
+
       setStudents(loadedStudents);
       setAreas(loadedAreas);
-      if (loadedStudents[0]?._id) setSelectedStudent(loadedStudents[0]._id);
+      if (loadedStudents[0]?.student?._id) setSelectedStudent(loadedStudents[0].student._id);
+      else if (loadedStudents[0]?._id) setSelectedStudent(loadedStudents[0]._id);
       if (loadedAreas[0]?._id) setSelectedArea(loadedAreas[0]._id);
     } catch {
       toast.error('No se pudo cargar la información del grupo');
@@ -57,9 +79,9 @@ const GroupScoresPage = () => {
     }
   };
 
-  const loadItems = async (areaId: string) => {
+  const loadItems = async (periodId: string, areaId: string) => {
     try {
-      const res = await evaluationsApi.getGradeItems({ area_id: areaId });
+      const res = await evaluationsApi.getGradeItems({ period_id: periodId, area_id: areaId });
       const loadedItems = unwrap(res, 'gradeItems');
       setItems(loadedItems);
       if (loadedItems[0]?._id) setSelectedItem(loadedItems[0]._id);
@@ -87,8 +109,8 @@ const GroupScoresPage = () => {
   }, [id]);
 
   useEffect(() => {
-    if (selectedArea) loadItems(selectedArea);
-  }, [selectedArea]);
+    if (selectedPeriod && selectedArea) loadItems(selectedPeriod, selectedArea);
+  }, [selectedPeriod, selectedArea]);
 
   useEffect(() => {
     if (selectedItem) loadScoresByItem(selectedItem);
@@ -107,8 +129,8 @@ const GroupScoresPage = () => {
     }
 
     const numericScore = Number(newScore);
-    if (Number.isNaN(numericScore) || numericScore < 0) {
-      toast.error('Ingresa una nota válida');
+    if (Number.isNaN(numericScore) || numericScore < 0 || numericScore > 10) {
+      toast.error('La nota debe estar entre 0 y 10');
       return;
     }
 
@@ -141,7 +163,18 @@ const GroupScoresPage = () => {
           <CardHeader>
             <CardTitle>Registrar calificación</CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+          <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+            <div className="space-y-2">
+              <Label>Periodo</Label>
+              <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+                <SelectTrigger><SelectValue placeholder="Selecciona periodo" /></SelectTrigger>
+                <SelectContent>
+                  {periods.map((period) => (
+                    <SelectItem key={period._id} value={period._id}>{period.name || period.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-2">
               <Label>Área</Label>
               <Select value={selectedArea} onValueChange={setSelectedArea}>
@@ -186,7 +219,7 @@ const GroupScoresPage = () => {
                 <Input
                   type="number"
                   min={0}
-                  max={5}
+                  max={10}
                   step="0.1"
                   value={newScore}
                   onChange={(e) => setNewScore(e.target.value)}

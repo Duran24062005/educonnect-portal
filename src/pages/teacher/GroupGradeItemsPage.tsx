@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
+import { isValidObjectId } from '@/lib/object-id';
 
 const pickArray = (res: any, key?: string) => {
   const data = res?.data?.data ?? res?.data;
@@ -71,6 +72,11 @@ const GroupGradeItemsPage = () => {
   };
 
   useEffect(() => {
+    if (!id || !isValidObjectId(id)) {
+      setLoading(false);
+      toast.error('ID de grupo inválido');
+      return;
+    }
     loadBaseData().finally(() => setLoading(false));
   }, []);
 
@@ -88,6 +94,11 @@ const GroupGradeItemsPage = () => {
   const submit = async () => {
     if (!selectedPeriod || !selectedArea || !form.name || !form.percentage) {
       toast.error('Completa todos los campos');
+      return;
+    }
+
+    if (!id || !isValidObjectId(id)) {
+      toast.error('ID de grupo inválido');
       return;
     }
 

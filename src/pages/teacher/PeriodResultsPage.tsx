@@ -22,6 +22,7 @@ const arrayFrom = (res: any, key?: string) => {
   if (Array.isArray(data?.students)) return data.students;
   if (Array.isArray(data?.periods)) return data.periods;
   if (Array.isArray(data?.results)) return data.results;
+  if (Array.isArray(data?.areas)) return data.areas;
   return [];
 };
 
@@ -30,10 +31,12 @@ const PeriodResultsPage = () => {
   const [groups, setGroups] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
   const [periods, setPeriods] = useState<any[]>([]);
+  const [areas, setAreas] = useState<any[]>([]);
   const [results, setResults] = useState<any[]>([]);
   const [selectedGroup, setSelectedGroup] = useState('');
   const [selectedStudent, setSelectedStudent] = useState('');
   const [selectedPeriod, setSelectedPeriod] = useState('');
+  const [selectedArea, setSelectedArea] = useState('');
   const [loading, setLoading] = useState(true);
   const [calculating, setCalculating] = useState(false);
 
@@ -42,12 +45,16 @@ const PeriodResultsPage = () => {
       if (!user?._id) return;
       setLoading(true);
       try {
-        const [groupsRes, yearsRes] = await Promise.all([
+        const [groupsRes, yearsRes, areasRes] = await Promise.all([
           groupsApi.getTeacherGroups(user._id),
           academicApi.getSchoolYears(),
+          academicApi.getAreas(),
         ]);
         const teacherGroups = arrayFrom(groupsRes, 'groups');
         setGroups(teacherGroups);
+        const loadedAreas = arrayFrom(areasRes, 'areas');
+        setAreas(loadedAreas);
+        if (loadedAreas[0]?._id) setSelectedArea(loadedAreas[0]._id);
 
         const years = arrayFrom(yearsRes, 'schoolYears');
         const activeYear = years.find((year: any) => year?.is_active) || years[0];
@@ -103,8 +110,8 @@ const PeriodResultsPage = () => {
   }, [selectedStudent]);
 
   const calculate = async () => {
-    if (!selectedStudent || !selectedPeriod) {
-      toast.error('Selecciona estudiante y periodo');
+    if (!selectedStudent || !selectedPeriod || !selectedArea) {
+      toast.error('Selecciona estudiante, periodo y área');
       return;
     }
 
@@ -112,6 +119,7 @@ const PeriodResultsPage = () => {
     try {
       await evaluationsApi.calculatePeriodResults({
         student_id: selectedStudent,
+        area_id: selectedArea,
         period_id: selectedPeriod,
       });
       toast.success('Cálculo de periodo ejecutado');
@@ -136,7 +144,7 @@ const PeriodResultsPage = () => {
           <CardHeader>
             <CardTitle>Parámetros</CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+          <CardContent className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
             <div className="space-y-2">
               <label className="text-sm font-medium">Grupo</label>
               <Select value={selectedGroup} onValueChange={setSelectedGroup}>
@@ -175,6 +183,18 @@ const PeriodResultsPage = () => {
                 <SelectContent>
                   {periods.map((period) => (
                     <SelectItem key={period._id} value={period._id}>{period.name || period.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Área</label>
+              <Select value={selectedArea} onValueChange={setSelectedArea}>
+                <SelectTrigger><SelectValue placeholder="Selecciona área" /></SelectTrigger>
+                <SelectContent>
+                  {areas.map((area) => (
+                    <SelectItem key={area._id} value={area._id}>{area.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

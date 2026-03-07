@@ -16,6 +16,7 @@ import {
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth';
+import { normalizeRole } from '@/lib/auth';
 import {
   Sidebar,
   SidebarContent,
@@ -67,7 +68,7 @@ export function AppSidebar() {
   const collapsed = state === 'collapsed';
   const location = useLocation();
   const { user } = useAuthStore();
-  const role = user?.role;
+  const role = normalizeRole(user?.role);
 
   const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + '/');
 
@@ -122,15 +123,15 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        {role === 'Admin' && (
+        {role === 'admin' && (
           <>
             {renderGroup('General', adminItems)}
             {renderGroup('Académico', academicItems)}
             {renderGroup('Organización', groupItems)}
           </>
         )}
-        {role === 'Teacher' && renderGroup('Docente', teacherItems)}
-        {role === 'Student' && renderGroup('Estudiante', studentItems)}
+        {role === 'teacher' && renderGroup('Docente', teacherItems)}
+        {role === 'student' && renderGroup('Estudiante', studentItems)}
       </SidebarContent>
     </Sidebar>
   );

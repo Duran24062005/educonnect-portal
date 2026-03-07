@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { authApi } from '@/api/auth';
+import { normalizeRole, normalizeStatus } from '@/lib/auth';
 
 export interface User {
   _id: string;
@@ -45,17 +46,6 @@ const parseStoredJson = <T>(key: string): T | null => {
     return null;
   }
 };
-
-const normalizeRole = (role?: string) => {
-  if (!role) return role;
-  const normalized = role.toLowerCase();
-  if (normalized === 'admin') return 'Admin';
-  if (normalized === 'teacher') return 'Teacher';
-  if (normalized === 'student') return 'Student';
-  return role;
-};
-
-const normalizeStatus = (status?: string) => status?.toLowerCase();
 
 const normalizeUser = (
   user: Partial<User> | null | undefined,

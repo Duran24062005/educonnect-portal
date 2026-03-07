@@ -1,5 +1,6 @@
 import { Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth';
+import { isBlockedAccountStatus } from '@/lib/auth';
 
 export const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
   const { token, isLoading } = useAuthStore();
@@ -20,6 +21,7 @@ export const RoleRoute = ({ children, roles }: { children: React.ReactNode; role
 export const PublicOnlyRoute = ({ children }: { children: React.ReactNode }) => {
   const { token, user, isLoading } = useAuthStore();
   if (isLoading) return null;
+  if (token && isBlockedAccountStatus(user?.status)) return <Navigate to="/account-status" replace />;
   if (token && user?.profile_complete) return <Navigate to="/dashboard" replace />;
   if (token && !user?.profile_complete) return <Navigate to="/complete-profile" replace />;
   return <>{children}</>;
@@ -29,6 +31,7 @@ export const IncompleteProfileRoute = ({ children }: { children: React.ReactNode
   const { token, user, isLoading } = useAuthStore();
   if (isLoading) return null;
   if (!token) return <Navigate to="/login" replace />;
+  if (isBlockedAccountStatus(user?.status)) return <Navigate to="/account-status" replace />;
   if (user?.profile_complete) return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
 };
@@ -38,5 +41,16 @@ export const ProfileCompleteGuard = ({ children }: { children: React.ReactNode }
   if (isLoading) return null;
   if (!token) return <Navigate to="/login" replace />;
   if (!user?.profile_complete) return <Navigate to="/complete-profile" replace />;
+  if (isBlockedAccountStatus(user?.status)) return <Navigate to="/account-status" replace />;
+  return <>{children}</>;
+};
+
+export const AccountStatusRoute = ({ children }: { children: React.ReactNode }) => {
+  const { token, user, isLoading } = useAuthStore();
+  if (isLoading) return null;
+  if (!token && !sessionStorage.getItem('account-state')) return <Navigate to="/login" replace />;
+  if (token && user?.profile_complete && !isBlockedAccountStatus(user?.status)) {
+    return <Navigate to="/dashboard" replace />;
+  }
   return <>{children}</>;
 };

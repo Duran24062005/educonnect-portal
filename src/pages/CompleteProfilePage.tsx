@@ -12,15 +12,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
+import { extractApiError, mapErrorDetailsByField } from '@/lib/http';
 
 const schema = z.object({
   first_name: z.string().min(2, 'Mínimo 2 caracteres').max(50),
   last_name: z.string().min(2, 'Mínimo 2 caracteres').max(50),
-  born_date: z.string().min(1, 'Fecha requerida'),
   document_type: z.enum(['CC', 'RC', 'CE']),
   document_number: z.string().min(5, 'Mínimo 5 caracteres').max(20),
-  phone: z.string().min(7, 'Mínimo 7 caracteres').max(15),
-  requested_role: z.enum(['Student', 'Teacher']),
+  born_date: z.string().optional(),
+  phone: z.string().min(7, 'Mínimo 7 caracteres').max(15).optional().or(z.literal('')),
+  requested_role: z.enum(['Student', 'Teacher', 'Parent']),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -35,12 +36,15 @@ const CompleteProfilePage = () => {
     register,
     handleSubmit,
     setValue,
+    setError,
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
       document_type: 'CC',
       requested_role: 'Student',
+      born_date: '',
+      phone: '',
     },
   });
 
@@ -77,15 +81,36 @@ const CompleteProfilePage = () => {
         return;
       }
 
-      const res = await authApi.completeProfile(data as CompleteProfileData);
+      const payloadToSend: CompleteProfileData = {
+        first_name: data.first_name,
+        last_name: data.last_name,
+        document_type: data.document_type,
+        document_number: data.document_number,
+        ...(data.born_date ? { born_date: data.born_date } : {}),
+        ...(data.phone ? { phone: data.phone } : {}),
+        ...(data.requested_role ? { requested_role: data.requested_role } : {}),
+      };
+
+      const res = await authApi.completeProfile(payloadToSend);
       const payload = res.data?.data ?? res.data;
       const { user, person } = payload;
       const token = localStorage.getItem('token')!;
       setAuth(token, { ...user, profile_complete: true }, person);
-      toast.success('Perfil completado. Tu cuenta está pendiente de aprobación.');
-      navigate('/dashboard');
+      toast.success('Perfil completado.');
+      if ((payload?.user?.status || person?.status || 'pending').toLowerCase() === 'active') {
+        navigate('/dashboard');
+      } else {
+        navigate('/account-status');
+      }
     } catch (err: any) {
-      const message = err.response?.data?.message || 'Error al completar perfil';
+      const { message } = extractApiError(err);
+      const fieldErrors = mapErrorDetailsByField(err);
+
+      Object.entries(fieldErrors).forEach(([field, value]) => {
+        if (field in data) {
+          setError(field as keyof FormData, { type: 'server', message: value });
+        }
+      });
 
       if (message.toLowerCase().includes('ya fue completado')) {
         await fetchMe();
@@ -172,6 +197,7 @@ const CompleteProfilePage = () => {
               <SelectContent>
                 <SelectItem value="Student">Estudiante</SelectItem>
                 <SelectItem value="Teacher">Docente</SelectItem>
+                <SelectItem value="Parent">Parent/Acudiente</SelectItem>
               </SelectContent>
             </Select>
           </div>

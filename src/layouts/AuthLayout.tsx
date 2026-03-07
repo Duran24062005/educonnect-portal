@@ -17,16 +17,18 @@ const AuthLayout = ({ children }: { children: React.ReactNode }) => {
           <div className="absolute top-1/2 left-1/3 w-48 h-48 rounded-full bg-primary-foreground/15" />
         </div>
         <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-lg bg-primary-foreground/20 flex items-center justify-center">
-              <img
-                src="https://edu-connect-beta.vercel.app/img/EduConectLogo.png"
-                alt="Logo EduConnect"
-                className="w-7 h-7 object-contain"
-              />
+          <a href="/">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-lg bg-primary-foreground/20 flex items-center justify-center">
+                  <img
+                    src="https://edu-connect-beta.vercel.app/img/EduConectLogo.png"
+                    alt="Logo EduConnect"
+                    className="w-7 h-7 object-contain"
+                  />
+                </div>
+              <span className="text-2xl font-display font-bold text-primary-foreground">EduConnect</span>
             </div>
-            <span className="text-2xl font-display font-bold text-primary-foreground">EduConnect</span>
-          </div>
+          </a>
         </div>
         <div className="relative z-10 space-y-4">
           <h2 className="text-3xl font-display font-bold text-primary-foreground leading-tight">

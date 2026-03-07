@@ -7,6 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Users, UserCheck, GraduationCap, Calendar, Clock, AlertCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { normalizeRole } from '@/lib/auth';
+import LightweightCategoryChart from '@/components/charts/LightweightCategoryChart';
+import { analyticsApi } from '@/api/analytics';
 
 const StatCard = ({
   title,
@@ -43,9 +46,81 @@ const AdminDashboard = () => {
   const [stats, setStats] = useState<any>(null);
   const [activeYear, setActiveYear] = useState<any>(null);
   const [pending, setPending] = useState<any[]>([]);
+  const [institutionOverview, setInstitutionOverview] = useState<any>(null);
+  const [institutionTrend, setInstitutionTrend] = useState<any[]>([]);
+  const [institutionGrades, setInstitutionGrades] = useState<any[]>([]);
+  const [institutionAreas, setInstitutionAreas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const roleStats = stats?.by_role || {};
   const statusStats = stats?.by_status || {};
+  const roleCategories = ['Students', 'Teachers', 'Admins', 'Parents'];
+  const roleSeries = [
+    {
+      id: 'roles',
+      label: 'Usuarios por rol',
+      type: 'area' as const,
+      color: '#0f766e',
+      values: [
+        Number(roleStats?.student || stats?.students || 0),
+        Number(roleStats?.teacher || stats?.teachers || 0),
+        Number(roleStats?.admin || 0),
+        Number(roleStats?.parent || roleStats?.guardian || 0),
+      ],
+    },
+  ];
+  const statusCategories = ['Pending', 'Active', 'Inactive', 'Blocked', 'Egresado'];
+  const statusSeries = [
+    {
+      id: 'status',
+      label: 'Usuarios por estado',
+      type: 'histogram' as const,
+      color: '#2563eb',
+      values: [
+        Number(statusStats?.pending || stats?.pending || 0),
+        Number(statusStats?.active || 0),
+        Number(statusStats?.inactive || 0),
+        Number(statusStats?.blocked || 0),
+        Number(statusStats?.egresado || 0),
+      ],
+    },
+  ];
+  const institutionalPeriodCategories = institutionTrend.map((period) => period.period_name);
+  const institutionalPeriodSeries = [
+    {
+      id: 'institution-average',
+      label: 'Promedio institucional',
+      type: 'area' as const,
+      color: '#0f766e',
+      values: institutionTrend.map((period) => Number(period.average)),
+    },
+    {
+      id: 'institution-failed',
+      label: 'Reprobados',
+      type: 'line' as const,
+      color: '#dc2626',
+      values: institutionTrend.map((period) => Number(period.failed)),
+    },
+  ];
+  const gradeCategories = institutionGrades.map((grade) => `Grado ${grade.grade_name}`);
+  const gradeSeries = [
+    {
+      id: 'grade-average',
+      label: 'Promedio por grado',
+      type: 'histogram' as const,
+      color: '#2563eb',
+      values: institutionGrades.map((grade) => Number(grade.average)),
+    },
+  ];
+  const areaCategories = institutionAreas.map((area) => area.area_name);
+  const areaSeries = [
+    {
+      id: 'area-average',
+      label: 'Promedio por área',
+      type: 'line' as const,
+      color: '#7c3aed',
+      values: institutionAreas.map((area) => Number(area.average)),
+    },
+  ];
 
   useEffect(() => {
     const load = async () => {
@@ -71,6 +146,12 @@ const AdminDashboard = () => {
           getActiveYearWithFallback(),
           usersApi.getPending(),
         ]);
+        const [overviewMock, trendMock, gradesMock, areasMock] = await Promise.all([
+          analyticsApi.getInstitutionOverview(),
+          analyticsApi.getInstitutionPeriodTrend(),
+          analyticsApi.getInstitutionGradeComparison(),
+          analyticsApi.getInstitutionAreaComparison(),
+        ]);
         if (statsRes.status === 'fulfilled') {
           const statsPayload = statsRes.value.data?.data ?? statsRes.value.data;
           setStats(statsPayload && typeof statsPayload === 'object' ? statsPayload : null);
@@ -88,6 +169,10 @@ const AdminDashboard = () => {
               : [];
           setPending(pendingList);
         }
+        setInstitutionOverview(overviewMock);
+        setInstitutionTrend(trendMock);
+        setInstitutionGrades(gradesMock);
+        setInstitutionAreas(areasMock);
       } catch {} finally {
         setLoading(false);
       }
@@ -133,6 +218,34 @@ const AdminDashboard = () => {
 
         <Card>
           <CardHeader>
+            <CardTitle className="text-base">Distribución por Rol</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <Skeleton className="h-72 w-full" />
+            ) : (
+              <LightweightCategoryChart categories={roleCategories} series={roleSeries} height={260} />
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Estados de Cuenta</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <Skeleton className="h-72 w-full" />
+            ) : (
+              <LightweightCategoryChart categories={statusCategories} series={statusSeries} height={260} />
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <AlertCircle className="w-4 h-4" />
               Usuarios Pendientes
@@ -162,6 +275,68 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        {loading
+          ? Array.from({ length: 3 }).map((_, index) => <Skeleton key={index} className="h-28 w-full" />)
+          : (
+            [
+              { label: 'Estudiantes institución', value: institutionOverview?.student_count ?? 0 },
+              { label: 'Promedio institucional', value: institutionOverview?.general_average ?? 0 },
+              { label: 'Repitencia estimada', value: institutionOverview?.repeating ?? 0 },
+            ].map((item) => (
+              <Card key={item.label}>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm text-muted-foreground">{item.label}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-2xl font-display font-bold">{item.value}</p>
+                </CardContent>
+              </Card>
+            ))
+          )}
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Tendencia Institucional</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <Skeleton className="h-80 w-full" />
+            ) : (
+              <LightweightCategoryChart categories={institutionalPeriodCategories} series={institutionalPeriodSeries} height={300} />
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Comparativo por Grado</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <Skeleton className="h-80 w-full" />
+            ) : (
+              <LightweightCategoryChart categories={gradeCategories} series={gradeSeries} height={300} />
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Promedio General por Área</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <Skeleton className="h-80 w-full" />
+          ) : (
+            <LightweightCategoryChart categories={areaCategories} series={areaSeries} height={280} />
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
@@ -225,12 +400,12 @@ const DashboardPage = () => {
 
   const renderDashboard = () => {
     if (user?.status === 'pending') return <PendingDashboard />;
-    switch (user?.role) {
-      case 'Admin':
+    switch (normalizeRole(user?.role)) {
+      case 'admin':
         return <AdminDashboard />;
-      case 'Teacher':
+      case 'teacher':
         return <TeacherDashboard />;
-      case 'Student':
+      case 'student':
         return <StudentDashboard />;
       default:
         return <PendingDashboard />;

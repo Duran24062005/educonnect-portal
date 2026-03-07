@@ -22,18 +22,21 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { Search, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { getRoleLabel } from '@/lib/auth';
 
 const statusColors: Record<string, string> = {
   active: 'bg-success/10 text-success border-success/20',
   pending: 'bg-warning/10 text-warning border-warning/20',
   inactive: 'bg-muted text-muted-foreground',
   blocked: 'bg-destructive/10 text-destructive border-destructive/20',
+  egresado: 'bg-info/10 text-info border-info/20',
 };
 
 const roleColors: Record<string, string> = {
-  Admin: 'bg-primary/10 text-primary border-primary/20',
-  Teacher: 'bg-info/10 text-info border-info/20',
-  Student: 'bg-accent text-accent-foreground',
+  admin: 'bg-primary/10 text-primary border-primary/20',
+  teacher: 'bg-info/10 text-info border-info/20',
+  student: 'bg-accent text-accent-foreground',
+  parent: 'bg-warning/10 text-warning border-warning/20',
 };
 
 const UsersPage = () => {
@@ -121,6 +124,7 @@ const UsersPage = () => {
                   <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="teacher">Docente</SelectItem>
                   <SelectItem value="student">Estudiante</SelectItem>
+                  <SelectItem value="parent">Parent/Acudiente</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
@@ -133,6 +137,7 @@ const UsersPage = () => {
                   <SelectItem value="pending">Pendiente</SelectItem>
                   <SelectItem value="inactive">Inactivo</SelectItem>
                   <SelectItem value="blocked">Bloqueado</SelectItem>
+                  <SelectItem value="egresado">Egresado</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -169,8 +174,8 @@ const UsersPage = () => {
                       <TableRow key={u._id}>
                         <TableCell className="font-medium">{u.email}</TableCell>
                         <TableCell>
-                          <Badge variant="outline" className={roleColors[normalizeRoleLabel(u.role)] || ''}>
-                            {normalizeRoleLabel(u.role)}
+                          <Badge variant="outline" className={roleColors[String(u.role || '').toLowerCase()] || ''}>
+                            {getRoleLabel(u.role)}
                           </Badge>
                         </TableCell>
                         <TableCell>

@@ -5,12 +5,19 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuthStore } from '@/store/auth';
-import { PublicOnlyRoute, IncompleteProfileRoute, ProfileCompleteGuard, RoleRoute } from '@/routes/guards';
+import {
+  PublicOnlyRoute,
+  IncompleteProfileRoute,
+  ProfileCompleteGuard,
+  RoleRoute,
+  AccountStatusRoute,
+} from '@/routes/guards';
 
 import Index from './pages/Index';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import CompleteProfilePage from './pages/CompleteProfilePage';
+import AccountStatusPage from './pages/AccountStatusPage';
 import DashboardPage from './pages/DashboardPage';
 import UsersPage from './pages/users/UsersPage';
 import PendingUsersPage from './pages/users/PendingUsersPage';
@@ -66,35 +73,36 @@ const App = () => (
             <Route path="/login" element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
             <Route path="/register" element={<PublicOnlyRoute><RegisterPage /></PublicOnlyRoute>} />
             <Route path="/complete-profile" element={<IncompleteProfileRoute><CompleteProfilePage /></IncompleteProfileRoute>} />
+            <Route path="/account-status" element={<AccountStatusRoute><AccountStatusPage /></AccountStatusRoute>} />
 
             {/* Protected routes */}
             <Route path="/dashboard" element={<ProfileCompleteGuard><DashboardPage /></ProfileCompleteGuard>} />
             <Route path="/profile" element={<ProfileCompleteGuard><ProfilePage /></ProfileCompleteGuard>} />
 
             {/* Admin routes */}
-            <Route path="/users" element={<ProfileCompleteGuard><RoleRoute roles={['Admin']}><UsersPage /></RoleRoute></ProfileCompleteGuard>} />
-            <Route path="/users/pending" element={<ProfileCompleteGuard><RoleRoute roles={['Admin']}><PendingUsersPage /></RoleRoute></ProfileCompleteGuard>} />
-            <Route path="/academic/school-years" element={<ProfileCompleteGuard><RoleRoute roles={['Admin']}><SchoolYearsPage /></RoleRoute></ProfileCompleteGuard>} />
-            <Route path="/academic/periods" element={<ProfileCompleteGuard><RoleRoute roles={['Admin']}><PeriodsPage /></RoleRoute></ProfileCompleteGuard>} />
-            <Route path="/academic/grades" element={<ProfileCompleteGuard><RoleRoute roles={['Admin']}><GradesPage /></RoleRoute></ProfileCompleteGuard>} />
-            <Route path="/academic/areas" element={<ProfileCompleteGuard><RoleRoute roles={['Admin']}><AreasPage /></RoleRoute></ProfileCompleteGuard>} />
-            <Route path="/academic/aulas" element={<ProfileCompleteGuard><RoleRoute roles={['Admin']}><AulasManagementPage /></RoleRoute></ProfileCompleteGuard>} />
-            <Route path="/academic/promotions" element={<ProfileCompleteGuard><RoleRoute roles={['Admin']}><PromotionsPage /></RoleRoute></ProfileCompleteGuard>} />
-            <Route path="/groups" element={<ProfileCompleteGuard><RoleRoute roles={['Admin']}><GroupsPage /></RoleRoute></ProfileCompleteGuard>} />
+            <Route path="/users" element={<ProfileCompleteGuard><RoleRoute roles={['admin']}><UsersPage /></RoleRoute></ProfileCompleteGuard>} />
+            <Route path="/users/pending" element={<ProfileCompleteGuard><RoleRoute roles={['admin']}><PendingUsersPage /></RoleRoute></ProfileCompleteGuard>} />
+            <Route path="/academic/school-years" element={<ProfileCompleteGuard><RoleRoute roles={['admin']}><SchoolYearsPage /></RoleRoute></ProfileCompleteGuard>} />
+            <Route path="/academic/periods" element={<ProfileCompleteGuard><RoleRoute roles={['admin']}><PeriodsPage /></RoleRoute></ProfileCompleteGuard>} />
+            <Route path="/academic/grades" element={<ProfileCompleteGuard><RoleRoute roles={['admin']}><GradesPage /></RoleRoute></ProfileCompleteGuard>} />
+            <Route path="/academic/areas" element={<ProfileCompleteGuard><RoleRoute roles={['admin']}><AreasPage /></RoleRoute></ProfileCompleteGuard>} />
+            <Route path="/academic/aulas" element={<ProfileCompleteGuard><RoleRoute roles={['admin']}><AulasManagementPage /></RoleRoute></ProfileCompleteGuard>} />
+            <Route path="/academic/promotions" element={<ProfileCompleteGuard><RoleRoute roles={['admin']}><PromotionsPage /></RoleRoute></ProfileCompleteGuard>} />
+            <Route path="/groups" element={<ProfileCompleteGuard><RoleRoute roles={['admin']}><GroupsPage /></RoleRoute></ProfileCompleteGuard>} />
             <Route path="/groups/:id" element={<ProfileCompleteGuard><GroupDetailPage /></ProfileCompleteGuard>} />
-            <Route path="/groups/enrollments" element={<ProfileCompleteGuard><RoleRoute roles={['Admin']}><EnrollmentsPage /></RoleRoute></ProfileCompleteGuard>} />
-            <Route path="/evaluations/stats" element={<ProfileCompleteGuard><RoleRoute roles={['Admin']}><EvaluationStatsPage /></RoleRoute></ProfileCompleteGuard>} />
-            <Route path="/evaluations/stats/:school_year_id" element={<ProfileCompleteGuard><RoleRoute roles={['Admin']}><EvaluationStatsPage /></RoleRoute></ProfileCompleteGuard>} />
+            <Route path="/groups/enrollments" element={<ProfileCompleteGuard><RoleRoute roles={['admin']}><EnrollmentsPage /></RoleRoute></ProfileCompleteGuard>} />
+            <Route path="/evaluations/stats" element={<ProfileCompleteGuard><RoleRoute roles={['admin']}><EvaluationStatsPage /></RoleRoute></ProfileCompleteGuard>} />
+            <Route path="/evaluations/stats/:school_year_id" element={<ProfileCompleteGuard><RoleRoute roles={['admin']}><EvaluationStatsPage /></RoleRoute></ProfileCompleteGuard>} />
 
             {/* Teacher routes */}
-            <Route path="/my-groups" element={<ProfileCompleteGuard><RoleRoute roles={['Teacher']}><MyGroupsPage /></RoleRoute></ProfileCompleteGuard>} />
-            <Route path="/groups/:id/grade-items" element={<ProfileCompleteGuard><RoleRoute roles={['Teacher']}><GroupGradeItemsPage /></RoleRoute></ProfileCompleteGuard>} />
-            <Route path="/groups/:id/scores" element={<ProfileCompleteGuard><RoleRoute roles={['Teacher']}><GroupScoresPage /></RoleRoute></ProfileCompleteGuard>} />
-            <Route path="/period-results" element={<ProfileCompleteGuard><RoleRoute roles={['Teacher']}><PeriodResultsPage /></RoleRoute></ProfileCompleteGuard>} />
+            <Route path="/my-groups" element={<ProfileCompleteGuard><RoleRoute roles={['teacher']}><MyGroupsPage /></RoleRoute></ProfileCompleteGuard>} />
+            <Route path="/groups/:id/grade-items" element={<ProfileCompleteGuard><RoleRoute roles={['teacher']}><GroupGradeItemsPage /></RoleRoute></ProfileCompleteGuard>} />
+            <Route path="/groups/:id/scores" element={<ProfileCompleteGuard><RoleRoute roles={['teacher']}><GroupScoresPage /></RoleRoute></ProfileCompleteGuard>} />
+            <Route path="/period-results" element={<ProfileCompleteGuard><RoleRoute roles={['teacher']}><PeriodResultsPage /></RoleRoute></ProfileCompleteGuard>} />
 
             {/* Student routes */}
-            <Route path="/my-grades" element={<ProfileCompleteGuard><RoleRoute roles={['Student']}><MyGradesPage /></RoleRoute></ProfileCompleteGuard>} />
-            <Route path="/my-results" element={<ProfileCompleteGuard><RoleRoute roles={['Student']}><MyResultsPage /></RoleRoute></ProfileCompleteGuard>} />
+            <Route path="/my-grades" element={<ProfileCompleteGuard><RoleRoute roles={['student']}><MyGradesPage /></RoleRoute></ProfileCompleteGuard>} />
+            <Route path="/my-results" element={<ProfileCompleteGuard><RoleRoute roles={['student']}><MyResultsPage /></RoleRoute></ProfileCompleteGuard>} />
 
             {/* Redirects */}
             <Route path="*" element={<NotFound />} />

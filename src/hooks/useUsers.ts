@@ -1,14 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { usersApi } from '@/api/users';
+import { getRoleLabel, normalizeRole } from '@/lib/auth';
 
-export const normalizeRoleLabel = (role?: string) => {
-  if (!role) return 'Sin rol';
-  const normalized = role.toLowerCase();
-  if (normalized === 'admin') return 'Admin';
-  if (normalized === 'teacher') return 'Teacher';
-  if (normalized === 'student') return 'Student';
-  return role;
-};
+export const normalizeRoleLabel = (role?: string) => getRoleLabel(role);
 
 const normalizeStatus = (status?: string) => {
   if (!status) return '—';
@@ -17,7 +11,7 @@ const normalizeStatus = (status?: string) => {
 
 const normalizeUserRow = (user: any) => {
   const person = user?.person || user?.person_id || null;
-  const role = normalizeRoleLabel(user?.role ?? person?.role);
+  const role = normalizeRole(user?.role ?? person?.role) ?? user?.role ?? person?.role;
   const status = normalizeStatus(user?.status ?? person?.status);
   return { ...user, person, role, status };
 };

@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { usersApi, type AdminUserRole, type AdminUserStatus } from '@/api/users';
 import { asArray, unwrapPayload } from './utils';
 
-export const ADMIN_ROLES: AdminUserRole[] = ['student', 'teacher', 'admin', 'guardian'];
+export const ADMIN_ROLES: AdminUserRole[] = ['student', 'teacher', 'parent', 'admin', 'guardian'];
 export const ADMIN_STATUSES: AdminUserStatus[] = ['active', 'pending', 'inactive', 'blocked', 'egresado'];
 
 export const useAdminPendingUsers = () => {

@@ -4,6 +4,7 @@ import { useAuthStore } from '@/store/auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { getMediaUrl } from '@/lib/media';
+import { getDashboardLabel, getRoleLabel } from '@/lib/auth';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,7 +43,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               <SidebarTrigger />
               <div className="hidden sm:block">
                 <h2 className="text-sm font-medium text-muted-foreground">
-                  Panel de {user?.role === 'Admin' ? 'Administración' : user?.role === 'Teacher' ? 'Docente' : 'Estudiante'}
+                  Panel de {getDashboardLabel(user?.role)}
                 </h2>
               </div>
             </div>
@@ -63,7 +64,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                     </Avatar>
                     <div className="hidden sm:block text-left">
                       <p className="text-sm font-medium leading-none">{displayName}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{user?.role}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{getRoleLabel(user?.role)}</p>
                     </div>
                   </Button>
                 </DropdownMenuTrigger>

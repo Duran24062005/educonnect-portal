@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
 import { Users, BookOpen } from 'lucide-react';
+import { isValidObjectId } from '@/lib/object-id';
 
 const getPayload = (responseData: any) => responseData?.data ?? responseData;
 
@@ -28,7 +29,11 @@ const GroupDetailPage = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!id) return;
+    if (!id || !isValidObjectId(id)) {
+      setLoading(false);
+      toast.error('ID de grupo inválido');
+      return;
+    }
     const load = async () => {
       try {
         const [groupRes, studentsRes, teachersRes] = await Promise.allSettled([

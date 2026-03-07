@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { extractApiError, mapErrorDetailsByField } from '@/lib/http';
 
 const schema = z
   .object({
@@ -34,6 +35,7 @@ const RegisterPage = () => {
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -49,7 +51,16 @@ const RegisterPage = () => {
       toast.success('Cuenta creada. Completa tu perfil.');
       navigate('/complete-profile');
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Error al registrarse');
+      const apiError = extractApiError(err);
+      const fieldErrors = mapErrorDetailsByField(err);
+
+      Object.entries(fieldErrors).forEach(([field, message]) => {
+        if (field in data) {
+          setError(field as keyof FormData, { type: 'server', message });
+        }
+      });
+
+      toast.error(apiError.message || 'Error al registrarse');
     } finally {
       setLoading(false);
     }

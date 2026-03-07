@@ -93,6 +93,11 @@ const PeriodsPage = () => {
     return year?.name || year?.year || 'Año escolar';
   }, [years, selectedYear]);
 
+  const currentWeightSum = useMemo(
+    () => periods.reduce((sum, period) => sum + Number(period?.weight || 0), 0),
+    [periods]
+  );
+
   const handleCreate = async () => {
     if (!selectedYear) {
       toast.error('Selecciona un año escolar');
@@ -116,6 +121,11 @@ const PeriodsPage = () => {
 
     if (new Date(startDate) >= new Date(endDate)) {
       toast.error('La fecha inicial debe ser menor a la final');
+      return;
+    }
+
+    if (currentWeightSum + weight > 1) {
+      toast.error('La suma total de pesos no puede superar 1');
       return;
     }
 
@@ -204,6 +214,7 @@ const PeriodsPage = () => {
                       onChange={(e) => setNewPeriod((prev) => ({ ...prev, weight: e.target.value }))}
                       placeholder="0.25"
                     />
+                    <p className="text-xs text-muted-foreground">Peso acumulado actual: {currentWeightSum.toFixed(2)}</p>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
