@@ -1,3 +1,6 @@
+import api from './axios';
+import { assertObjectId } from '@/lib/object-id';
+
 const wait = (ms = 150) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export interface StudentOverview {
@@ -158,37 +161,6 @@ const teacherGroups: TeacherGroupAnalytics[] = [
   },
 ];
 
-const institutionOverview = {
-  student_count: 924,
-  general_average: 7.1,
-  passed: 734,
-  failed: 190,
-  repeating: 36,
-};
-
-const institutionPeriods = [
-  { period_name: 'Periodo 1', average: 6.7, passed: 690, failed: 234 },
-  { period_name: 'Periodo 2', average: 7.0, passed: 716, failed: 208 },
-  { period_name: 'Periodo 3', average: 7.2, passed: 742, failed: 182 },
-  { period_name: 'Periodo 4', average: 7.1, passed: 734, failed: 190 },
-];
-
-const institutionGrades = [
-  { grade_name: '6', average: 6.6, passed: 120, failed: 38 },
-  { grade_name: '7', average: 6.9, passed: 138, failed: 32 },
-  { grade_name: '8', average: 7.2, passed: 160, failed: 28 },
-  { grade_name: '9', average: 7.0, passed: 154, failed: 41 },
-  { grade_name: '10', average: 7.4, passed: 162, failed: 26 },
-];
-
-const institutionAreas = [
-  { area_name: 'Matemáticas', average: 7.1 },
-  { area_name: 'Lenguaje', average: 7.4 },
-  { area_name: 'Ciencias', average: 7.0 },
-  { area_name: 'Sociales', average: 6.5 },
-  { area_name: 'Inglés', average: 7.6 },
-];
-
 export const analyticsApi = {
   getStudentOverview: async () => {
     await wait();
@@ -200,14 +172,12 @@ export const analyticsApi = {
   },
   getStudentPeriodSummary: async () => {
     await wait();
-    return institutionPeriods.map((period, index) => ({
-      period_id: `period-${index + 1}`,
-      period_name: period.period_name,
-      general_average: [7.1, 7.5, 8.0, 7.8][index],
-      passed_areas: [6, 7, 8, 8][index],
-      failed_areas: [3, 2, 1, 1][index],
-      status: index < 1 ? 'passed' : 'passed',
-    }));
+    return [
+      { period_id: 'period-1', period_name: 'Periodo 1', general_average: 7.1, passed_areas: 6, failed_areas: 3, status: 'passed' },
+      { period_id: 'period-2', period_name: 'Periodo 2', general_average: 7.5, passed_areas: 7, failed_areas: 2, status: 'passed' },
+      { period_id: 'period-3', period_name: 'Periodo 3', general_average: 8.0, passed_areas: 8, failed_areas: 1, status: 'passed' },
+      { period_id: 'period-4', period_name: 'Periodo 4', general_average: 7.8, passed_areas: 8, failed_areas: 1, status: 'passed' },
+    ];
   },
   getTeacherGroupsAnalytics: async () => {
     await wait();
@@ -217,20 +187,42 @@ export const analyticsApi = {
     await wait();
     return teacherGroups.find((group) => group.group_id === groupId) ?? teacherGroups[0];
   },
-  getInstitutionOverview: async () => {
-    await wait();
-    return institutionOverview;
-  },
-  getInstitutionPeriodTrend: async () => {
-    await wait();
-    return institutionPeriods;
-  },
-  getInstitutionGradeComparison: async () => {
-    await wait();
-    return institutionGrades;
-  },
-  getInstitutionAreaComparison: async () => {
-    await wait();
-    return institutionAreas;
-  },
+
+  // Admin analytics backed by the real API, aligned with PRD 008.
+  getAdminInstitutionOverview: (schoolYearId: string, periodId?: string) =>
+    api.get('/api/analytics/admin/institution-overview', {
+      params: {
+        school_year_id: assertObjectId(schoolYearId, 'school_year_id'),
+        period_id: periodId ? assertObjectId(periodId, 'period_id') : undefined,
+      },
+    }),
+  getAdminInstitutionTrend: (schoolYearId: string) =>
+    api.get('/api/analytics/admin/institution-trend', {
+      params: {
+        school_year_id: assertObjectId(schoolYearId, 'school_year_id'),
+      },
+    }),
+  getAdminByGrade: (schoolYearId: string, periodId?: string) =>
+    api.get('/api/analytics/admin/by-grade', {
+      params: {
+        school_year_id: assertObjectId(schoolYearId, 'school_year_id'),
+        period_id: periodId ? assertObjectId(periodId, 'period_id') : undefined,
+      },
+    }),
+  getAdminByArea: (schoolYearId: string, gradeId?: string, periodId?: string) =>
+    api.get('/api/analytics/admin/by-area', {
+      params: {
+        school_year_id: assertObjectId(schoolYearId, 'school_year_id'),
+        grade_id: gradeId ? assertObjectId(gradeId, 'grade_id') : undefined,
+        period_id: periodId ? assertObjectId(periodId, 'period_id') : undefined,
+      },
+    }),
+  getAdminGradeDetail: (schoolYearId: string, gradeId: string, periodId?: string) =>
+    api.get('/api/analytics/admin/grade-detail', {
+      params: {
+        school_year_id: assertObjectId(schoolYearId, 'school_year_id'),
+        grade_id: assertObjectId(gradeId, 'grade_id'),
+        period_id: periodId ? assertObjectId(periodId, 'period_id') : undefined,
+      },
+    }),
 };

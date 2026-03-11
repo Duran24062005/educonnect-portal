@@ -51,6 +51,50 @@ const resolveGradeName = (group: any, grades: any[]) => {
   return grade?.name || null;
 };
 
+const getBackendMessage = (err: any, fallback: string) => {
+  return err?.response?.data?.message || fallback;
+};
+
+const getStudentFromEnrollment = (entry: any) => {
+  return entry?.student || entry?.student_id || entry;
+};
+
+const getGroupFromEnrollment = (entry: any) => {
+  return entry?.group || entry?.group_id || null;
+};
+
+const getSchoolYearFromEnrollment = (entry: any) => {
+  return entry?.school_year || entry?.school_year_id || null;
+};
+
+const isActiveEnrollment = (entry: any) => String(entry?.status || '').toLowerCase() === 'active';
+
+const getStudentDisplay = (entry: any) => {
+  const student = getStudentFromEnrollment(entry);
+  const person =
+    student?.person ||
+    student?.person_id ||
+    student?.user_id?.person ||
+    student?.user_id?.person_id;
+
+  if (person?.first_name || person?.last_name) {
+    return {
+      name: `${person?.first_name || ''} ${person?.last_name || ''}`.trim(),
+      email: student?.user_id?.email || student?.email || '',
+    };
+  }
+
+  return {
+    name: student?.user_id?.email || student?.email || 'N/A',
+    email: student?.user_id?.email || student?.email || '',
+  };
+};
+
+const getSchoolYearLabel = (entry: any) => {
+  const schoolYear = getSchoolYearFromEnrollment(entry);
+  return schoolYear?.name || schoolYear?.year || 'N/A';
+};
+
 const EnrollmentsPage = () => {
   const {
     enrollmentYearId,
@@ -112,6 +156,18 @@ const EnrollmentsPage = () => {
     [students]
   );
 
+  const activeStudentEnrollment = useMemo(
+    () => studentEnrollments.find((entry: any) => isActiveEnrollment(entry)) ?? null,
+    [studentEnrollments]
+  );
+
+  const activeStudentGroupId =
+    activeStudentEnrollment?.group_id?._id ||
+    activeStudentEnrollment?.group_id ||
+    activeStudentEnrollment?.group?._id ||
+    activeStudentEnrollment?.group ||
+    null;
+
   const onCreateEnrollment = async () => {
     if (!selectedStudentId || !selectedGroupId || !enrollmentYearId) {
       toast.error('Selecciona año, grupo y estudiante');
@@ -128,11 +184,11 @@ const EnrollmentsPage = () => {
       refetchGroupStudents();
       refetchStudentEnrollments();
     } catch (err: any) {
-      if (err?.response?.status === 404) {
-        toast.error('La ruta de matrículas no está disponible en este backend local (404)');
+      if (err?.response?.status === 404 && err?.response?.data?.message) {
+        toast.error(err.response.data.message);
         return;
       }
-      toast.error(err.response?.data?.message || 'No se pudo crear la matrícula');
+      toast.error(getBackendMessage(err, 'No se pudo crear la matrícula'));
     }
   };
 
@@ -143,13 +199,21 @@ const EnrollmentsPage = () => {
       refetchGroupStudents();
       refetchStudentEnrollments();
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'No se pudo actualizar el estado');
+      toast.error(getBackendMessage(err, 'No se pudo actualizar el estado'));
     }
   };
 
   const onTransferEnrollment = async () => {
     if (!selectedStudentId || !enrollmentYearId || !transferForm.to_group_id) {
       toast.error('Completa estudiante, año y grupo destino');
+      return;
+    }
+    if (!activeStudentEnrollment) {
+      toast.error('El estudiante no tiene matrícula activa para trasladar');
+      return;
+    }
+    if (transferForm.to_group_id === activeStudentGroupId) {
+      toast.error('El grupo destino debe ser diferente al grupo actual');
       return;
     }
 
@@ -167,7 +231,7 @@ const EnrollmentsPage = () => {
       refetchGroupStudents();
       refetchStudentEnrollments();
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'No se pudo realizar el traslado');
+      toast.error(getBackendMessage(err, 'No se pudo realizar el traslado'));
     }
   };
 
@@ -184,7 +248,7 @@ const EnrollmentsPage = () => {
       refetchGroupStudents();
       refetchStudentEnrollments();
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'No se pudo asignar aula');
+      toast.error(getBackendMessage(err, 'No se pudo asignar aula'));
     }
   };
 
@@ -245,6 +309,11 @@ const EnrollmentsPage = () => {
                       {student.label}
                     </SelectItem>
                   ))}
+                  {normalizedStudents.length === 0 && (
+                    <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                      No hay estudiantes con perfil academico disponible
+                    </div>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -296,23 +365,31 @@ const EnrollmentsPage = () => {
                     )}
 
                     {!loadingGroupStudents && groupStudents.map((entry: any) => {
-                      const student = entry.student || entry;
-                      const person = student.person || student.person_id;
-                      const studentName = person ? `${person.first_name} ${person.last_name}` : student.email;
+                      const student = getStudentFromEnrollment(entry);
+                      const studentDisplay = getStudentDisplay(entry);
                       const status = (entry.status || 'active').toLowerCase();
-                      const studentId = student._id;
+                      const studentId = student?._id;
+                      const studentHasAulaAction = Boolean(studentId);
 
                       return (
                         <TableRow key={entry._id || studentId}>
-                          <TableCell className="font-medium">{studentName}</TableCell>
+                          <TableCell className="font-medium">
+                            <div>{studentDisplay.name}</div>
+                            {studentDisplay.email && studentDisplay.email !== studentDisplay.name && (
+                              <div className="text-xs text-muted-foreground">{studentDisplay.email}</div>
+                            )}
+                          </TableCell>
                           <TableCell>
                             <Badge variant="outline" className={statusClassMap[status] || ''}>{status}</Badge>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <Select
-                                value={aulaSelections[studentId] || ''}
-                                onValueChange={(value) => setAulaSelections((prev) => ({ ...prev, [studentId]: value }))}
+                                value={(studentId && aulaSelections[studentId]) || ''}
+                                onValueChange={(value) => {
+                                  if (!studentId) return;
+                                  setAulaSelections((prev) => ({ ...prev, [studentId]: value }));
+                                }}
                               >
                                 <SelectTrigger className="h-8 w-36">
                                   <SelectValue placeholder="Asignar" />
@@ -323,7 +400,12 @@ const EnrollmentsPage = () => {
                                   ))}
                                 </SelectContent>
                               </Select>
-                              <Button size="sm" variant="secondary" onClick={() => onAssignAula(studentId)} disabled={assignAula.isPending}>
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => studentId && onAssignAula(studentId)}
+                                disabled={assignAula.isPending || !studentHasAulaAction}
+                              >
                                 Aula
                               </Button>
                             </div>
@@ -357,7 +439,7 @@ const EnrollmentsPage = () => {
               <CardTitle>Matrículas por estudiante</CardTitle>
               <Dialog open={transferOpen} onOpenChange={setTransferOpen}>
                 <DialogTrigger asChild>
-                  <Button disabled={!selectedStudentId}>
+                  <Button disabled={!selectedStudentId || !activeStudentEnrollment}>
                     <ArrowRightLeft className="w-4 h-4 mr-2" /> Trasladar
                   </Button>
                 </DialogTrigger>
@@ -377,7 +459,7 @@ const EnrollmentsPage = () => {
                         </SelectTrigger>
                         <SelectContent>
                           {normalizedGroups
-                            .filter((group) => group.id !== selectedGroupId)
+                            .filter((group) => group.id !== activeStudentGroupId)
                             .map((group) => (
                               <SelectItem key={group.id} value={group.id}>{group.label}</SelectItem>
                             ))}
@@ -440,8 +522,8 @@ const EnrollmentsPage = () => {
 
                     {!loadingStudentEnrollments && studentEnrollments.map((item: any) => (
                       <TableRow key={item._id}>
-                        <TableCell>{item.group?.name || item.group_id?.name || 'N/A'}</TableCell>
-                        <TableCell>{item.school_year?.name || item.school_year_id?.name || 'N/A'}</TableCell>
+                        <TableCell>{getGroupFromEnrollment(item)?.name || 'N/A'}</TableCell>
+                        <TableCell>{getSchoolYearLabel(item)}</TableCell>
                         <TableCell>
                           <Badge variant="outline" className={statusClassMap[(item.status || '').toLowerCase()] || ''}>
                             {item.status || 'N/A'}

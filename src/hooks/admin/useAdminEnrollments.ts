@@ -67,13 +67,32 @@ const fetchAllUsersPaged = async () => {
   return acc;
 };
 
+const normalizeStudentRow = (user: any) => {
+  const person = user?.person || user?.person_id || user?.user_id?.person || user?.user_id?.person_id || null;
+  const account = user?.user_id || user;
+  const studentProfileId =
+    user?.student?._id ||
+    user?.student_id?._id ||
+    (typeof user?.student_id === 'string' ? user.student_id : null) ||
+    null;
+
+  return {
+    ...user,
+    _id: studentProfileId,
+    student_profile_id: studentProfileId,
+    user_id: account?._id || user?.user_id || user?._id,
+    email: account?.email || user?.email || '',
+    person,
+  };
+};
+
 export const useAdminStudents = () => {
   return useQuery({
     queryKey: ['admin', 'students'],
     queryFn: async () => {
       try {
         const students = await fetchStudentsPaged();
-        if (students.length > 0) return students;
+        if (students.length > 0) return students.map(normalizeStudentRow).filter((student: any) => Boolean(student._id));
         return [];
       } catch {
         // Fallback para ambientes donde aún no esté desplegada la nueva ruta.
@@ -82,7 +101,7 @@ export const useAdminStudents = () => {
         return users.filter((user: any) => {
           const role = String(user?.role || user?.person?.role || user?.person_id?.role || '').toLowerCase();
           return role === 'student';
-        });
+        }).map(normalizeStudentRow).filter((student: any) => Boolean(student._id));
       }
     },
     staleTime: 60_000,
@@ -132,6 +151,7 @@ export const useTransferEnrollment = () => {
   return useMutation({
     mutationFn: (payload: TransferEnrollmentPayload) => groupsApi.transferEnrollment(payload),
     onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ['admin', 'group', variables.to_group_id, 'students'] });
       qc.invalidateQueries({ queryKey: ['admin', 'student', variables.student_id, 'enrollments'] });
       qc.invalidateQueries({ queryKey: ['admin', 'group'] });
     },

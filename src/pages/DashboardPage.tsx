@@ -146,19 +146,15 @@ const AdminDashboard = () => {
           getActiveYearWithFallback(),
           usersApi.getPending(),
         ]);
-        const [overviewMock, trendMock, gradesMock, areasMock] = await Promise.all([
-          analyticsApi.getInstitutionOverview(),
-          analyticsApi.getInstitutionPeriodTrend(),
-          analyticsApi.getInstitutionGradeComparison(),
-          analyticsApi.getInstitutionAreaComparison(),
-        ]);
         if (statsRes.status === 'fulfilled') {
           const statsPayload = statsRes.value.data?.data ?? statsRes.value.data;
           setStats(statsPayload && typeof statsPayload === 'object' ? statsPayload : null);
         }
+        let resolvedActiveYear: any = null;
         if (yearRes.status === 'fulfilled') {
           const yearPayload = yearRes.value.data?.data ?? yearRes.value.data;
-          setActiveYear(yearPayload && typeof yearPayload === 'object' ? yearPayload : null);
+          resolvedActiveYear = yearPayload && typeof yearPayload === 'object' ? yearPayload : null;
+          setActiveYear(resolvedActiveYear);
         }
         if (pendingRes.status === 'fulfilled') {
           const pendingPayload = pendingRes.value.data?.data ?? pendingRes.value.data;
@@ -169,10 +165,38 @@ const AdminDashboard = () => {
               : [];
           setPending(pendingList);
         }
-        setInstitutionOverview(overviewMock);
-        setInstitutionTrend(trendMock);
-        setInstitutionGrades(gradesMock);
-        setInstitutionAreas(areasMock);
+
+        const activeYearId = resolvedActiveYear?._id;
+        if (activeYearId) {
+          const [overviewRes, trendRes, gradesRes, areasRes] = await Promise.allSettled([
+            analyticsApi.getAdminInstitutionOverview(activeYearId),
+            analyticsApi.getAdminInstitutionTrend(activeYearId),
+            analyticsApi.getAdminByGrade(activeYearId),
+            analyticsApi.getAdminByArea(activeYearId),
+          ]);
+
+          if (overviewRes.status === 'fulfilled') {
+            const payload = overviewRes.value.data?.data ?? overviewRes.value.data;
+            setInstitutionOverview(payload?.summary || null);
+          }
+          if (trendRes.status === 'fulfilled') {
+            const payload = trendRes.value.data?.data ?? trendRes.value.data;
+            setInstitutionTrend(Array.isArray(payload?.periods) ? payload.periods : []);
+          }
+          if (gradesRes.status === 'fulfilled') {
+            const payload = gradesRes.value.data?.data ?? gradesRes.value.data;
+            setInstitutionGrades(Array.isArray(payload?.grades) ? payload.grades : []);
+          }
+          if (areasRes.status === 'fulfilled') {
+            const payload = areasRes.value.data?.data ?? areasRes.value.data;
+            setInstitutionAreas(Array.isArray(payload?.areas) ? payload.areas : []);
+          }
+        } else {
+          setInstitutionOverview(null);
+          setInstitutionTrend([]);
+          setInstitutionGrades([]);
+          setInstitutionAreas([]);
+        }
       } catch {} finally {
         setLoading(false);
       }

@@ -51,6 +51,15 @@ const resolveGradeName = (group: any, grades: any[]) => {
   return matched?.name || null;
 };
 
+const getActiveEnrollments = (group: any) =>
+  typeof group?.active_enrollments === 'number' ? group.active_enrollments : 0;
+
+const getAvailableSlots = (group: any) => {
+  if (typeof group?.available_slots === 'number') return group.available_slots;
+  const maxCapacity = Number(group?.max_capacity || 0);
+  return Math.max(maxCapacity - getActiveEnrollments(group), 0);
+};
+
 const GroupsPage = () => {
   const [years, setYears] = useState<any[]>([]);
   const [selectedYear, setSelectedYear] = useState('');
@@ -249,7 +258,9 @@ const GroupsPage = () => {
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Users className="w-4 h-4" />
                     <span>{resolveGradeName(g, grades) || 'Sin grado'}</span>
-                    <Badge variant="secondary">Cupo: {g.max_capacity ?? '-'}</Badge>
+                    <Badge variant="secondary">Capacidad: {g.max_capacity ?? '-'}</Badge>
+                    <Badge variant="outline">Matriculados: {getActiveEnrollments(g)}</Badge>
+                    <Badge variant="outline">Disponibles: {getAvailableSlots(g)}</Badge>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Button variant="outline" size="sm" onClick={() => navigate(`/groups/${g._id}`)}>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { academicApi } from '@/api/academic';
+import { analyticsApi } from '@/api/analytics';
 import { evaluationsApi } from '@/api/evaluations';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,6 +26,10 @@ const EvaluationStatsPage = () => {
   const navigate = useNavigate();
   const [years, setYears] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
+  const [analyticsSummary, setAnalyticsSummary] = useState<any>(null);
+  const [areaStats, setAreaStats] = useState<any[]>([]);
+  const [gradeStats, setGradeStats] = useState<any[]>([]);
+  const [trendStats, setTrendStats] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState(school_year_id || '');
 
@@ -57,14 +62,55 @@ const EvaluationStatsPage = () => {
     }
     setLoading(true);
 
-    evaluationsApi
-      .getYearStats(yearId)
-      .then((res) => {
-        const data = res.data?.data ?? res.data;
-        setStats(data || null);
+    Promise.allSettled([
+      evaluationsApi.getYearStats(yearId),
+      analyticsApi.getAdminInstitutionOverview(yearId),
+      analyticsApi.getAdminInstitutionTrend(yearId),
+      analyticsApi.getAdminByArea(yearId),
+      analyticsApi.getAdminByGrade(yearId),
+    ])
+      .then(([statsRes, overviewRes, trendRes, areaRes, gradeRes]) => {
+        if (statsRes.status === 'fulfilled') {
+          const data = statsRes.value.data?.data ?? statsRes.value.data;
+          setStats(data || null);
+        } else {
+          setStats(null);
+        }
+
+        if (overviewRes.status === 'fulfilled') {
+          const data = overviewRes.value.data?.data ?? overviewRes.value.data;
+          setAnalyticsSummary(data?.summary || null);
+        } else {
+          setAnalyticsSummary(null);
+        }
+
+        if (trendRes.status === 'fulfilled') {
+          const data = trendRes.value.data?.data ?? trendRes.value.data;
+          setTrendStats(Array.isArray(data?.periods) ? data.periods : []);
+        } else {
+          setTrendStats([]);
+        }
+
+        if (areaRes.status === 'fulfilled') {
+          const data = areaRes.value.data?.data ?? areaRes.value.data;
+          setAreaStats(Array.isArray(data?.areas) ? data.areas : []);
+        } else {
+          setAreaStats([]);
+        }
+
+        if (gradeRes.status === 'fulfilled') {
+          const data = gradeRes.value.data?.data ?? gradeRes.value.data;
+          setGradeStats(Array.isArray(data?.grades) ? data.grades : []);
+        } else {
+          setGradeStats([]);
+        }
       })
       .catch(() => {
         setStats(null);
+        setAnalyticsSummary(null);
+        setTrendStats([]);
+        setAreaStats([]);
+        setGradeStats([]);
         toast.error('No se pudieron cargar las estadísticas');
       })
       .finally(() => setLoading(false));
@@ -76,15 +122,16 @@ const EvaluationStatsPage = () => {
   };
 
   const summaryCards = [
-    { label: 'Total estudiantes', value: stats?.total_students ?? stats?.students ?? 0 },
-    { label: 'Promedio general', value: stats?.general_average ?? stats?.average ?? 0 },
-    { label: 'Aprobados', value: stats?.approved_students ?? stats?.approved ?? 0 },
-    { label: 'Reprobados', value: stats?.failed_students ?? stats?.failed ?? 0 },
+    { label: 'Total estudiantes', value: analyticsSummary?.student_count ?? stats?.total ?? 0 },
+    { label: 'Promedio general', value: analyticsSummary?.general_average ?? 0 },
+    { label: 'Aprobados', value: analyticsSummary?.passed ?? stats?.passed ?? 0 },
+    { label: 'Reprobados', value: analyticsSummary?.failed ?? stats?.failed ?? 0 },
+    { label: 'Repitentes', value: analyticsSummary?.repeating ?? stats?.repeating ?? 0 },
   ];
 
-  const areaCategories = Array.isArray(stats?.by_area)
-    ? stats.by_area.map((area: any, index: number) => area.name || area.area?.name || `Área ${index + 1}`)
-    : [];
+  const areaCategories = areaStats.map((area: any, index: number) => area.area_name || area.name || `Área ${index + 1}`);
+  const trendCategories = trendStats.map((period: any, index: number) => period.period_name || `Periodo ${index + 1}`);
+  const gradeCategories = gradeStats.map((grade: any, index: number) => grade.grade_name || `Grado ${index + 1}`);
 
   const averageSeries = [
     {
@@ -92,9 +139,7 @@ const EvaluationStatsPage = () => {
       label: 'Promedio por área',
       type: 'area' as const,
       color: '#0f766e',
-      values: Array.isArray(stats?.by_area)
-        ? stats.by_area.map((area: any) => Number(area.average ?? area.avg ?? 0))
-        : [],
+      values: areaStats.map((area: any) => Number(area.average ?? area.avg ?? 0)),
     },
   ];
 
@@ -104,18 +149,34 @@ const EvaluationStatsPage = () => {
       label: 'Aprobados',
       type: 'histogram' as const,
       color: '#2563eb',
-      values: Array.isArray(stats?.by_area)
-        ? stats.by_area.map((area: any) => Number(area.passed ?? area.approved ?? 0))
-        : [],
+      values: areaStats.map((area: any) => Number(area.passed ?? area.approved ?? 0)),
     },
     {
       id: 'failed',
       label: 'Reprobados',
       type: 'line' as const,
       color: '#dc2626',
-      values: Array.isArray(stats?.by_area)
-        ? stats.by_area.map((area: any) => Number(area.failed ?? 0))
-        : [],
+      values: areaStats.map((area: any) => Number(area.failed ?? 0)),
+    },
+  ];
+
+  const trendSeries = [
+    {
+      id: 'institution-average',
+      label: 'Promedio institucional',
+      type: 'line' as const,
+      color: '#7c3aed',
+      values: trendStats.map((period: any) => Number(period.average ?? 0)),
+    },
+  ];
+
+  const gradeSeries = [
+    {
+      id: 'grade-average',
+      label: 'Promedio por grado',
+      type: 'histogram' as const,
+      color: '#ea580c',
+      values: gradeStats.map((grade: any) => Number(grade.average ?? 0)),
     },
   ];
 
@@ -141,7 +202,7 @@ const EvaluationStatsPage = () => {
           </Select>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
           {summaryCards.map((card) => (
             <Card key={card.label}>
               <CardHeader className="pb-2">
@@ -159,6 +220,36 @@ const EvaluationStatsPage = () => {
         </div>
 
         <div className="grid gap-4 xl:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Tendencia Institucional por Periodo</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <Skeleton className="h-80 w-full" />
+              ) : trendCategories.length > 0 ? (
+                <LightweightCategoryChart categories={trendCategories} series={trendSeries} height={300} />
+              ) : (
+                <p className="text-muted-foreground py-8 text-center">No hay datos por periodo para este año</p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Comparativo por Grado</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <Skeleton className="h-80 w-full" />
+              ) : gradeCategories.length > 0 ? (
+                <LightweightCategoryChart categories={gradeCategories} series={gradeSeries} height={300} />
+              ) : (
+                <p className="text-muted-foreground py-8 text-center">No hay datos por grado para este año</p>
+              )}
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Tendencia de Promedios</CardTitle>
@@ -201,12 +292,12 @@ const EvaluationStatsPage = () => {
                   <Skeleton key={i} className="h-10" />
                 ))}
               </div>
-            ) : Array.isArray(stats?.by_area) && stats.by_area.length > 0 ? (
+            ) : areaStats.length > 0 ? (
               <div className="space-y-2">
-                {stats.by_area.map((area: any, index: number) => (
-                  <div key={`${area.name}-${index}`} className="flex items-center justify-between border rounded-md p-3">
+                {areaStats.map((area: any, index: number) => (
+                  <div key={`${area.area_name || area.name}-${index}`} className="flex items-center justify-between border rounded-md p-3">
                     <div>
-                      <p className="font-medium">{area.name || area.area?.name || 'Área'}</p>
+                      <p className="font-medium">{area.area_name || area.name || 'Área'}</p>
                       <p className="text-sm text-muted-foreground">Promedio: {area.average ?? area.avg ?? 0}</p>
                     </div>
                     <Badge variant="outline">{area.passed ?? area.approved ?? 0} aprobados</Badge>
