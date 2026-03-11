@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import DashboardLayout from '@/layouts/DashboardLayout';
-import { analyticsApi, type TeacherGroupAnalytics } from '@/api/analytics';
+import { academicApi } from '@/api/academic';
+import { analyticsApi, type TeacherGroupAnalytics, type TeacherStudentDetail } from '@/api/analytics';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -12,33 +13,223 @@ import { useNavigate } from 'react-router-dom';
 import { BarChart3, Eye, Users } from 'lucide-react';
 import LightweightCategoryChart from '@/components/charts/LightweightCategoryChart';
 
+const PASSING_SCORE = 6;
+
+const getPayload = (response: any) => response?.data?.data ?? response?.data;
+
+const asArray = (response: any, key?: string) => {
+  const payload = getPayload(response);
+  if (key && Array.isArray(payload?.[key])) return payload[key];
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.items)) return payload.items;
+  if (Array.isArray(payload?.schoolYears)) return payload.schoolYears;
+  if (Array.isArray(payload?.groups)) return payload.groups;
+  if (Array.isArray(payload?.students)) return payload.students;
+  if (Array.isArray(payload?.periods)) return payload.periods;
+  return [];
+};
+
+const assignmentKey = (groupId?: string, areaId?: string) => `${groupId || ''}:${areaId || ''}`;
+
+const toTeacherMetric = (
+  assignment: any,
+  performancePayload: any,
+  trendPayload: any
+): TeacherGroupAnalytics => {
+  const summary = performancePayload?.summary || {};
+  const students = Array.isArray(performancePayload?.students) ? performancePayload.students : [];
+  const periods = Array.isArray(trendPayload?.periods) ? trendPayload.periods : [];
+
+  return {
+    group_id: assignment?.group_id || '',
+    group_name: assignment?.group_name || 'Grupo',
+    grade_name: assignment?.grade_name || 'Grado',
+    area_id: assignment?.area_id || '',
+    area_name: assignment?.area_name || 'Area',
+    student_count: Number(summary?.student_count ?? students.length ?? 0),
+    average: Number(summary?.average ?? 0),
+    passed: Number(summary?.passed ?? 0),
+    failed: Number(summary?.failed ?? 0),
+    periods: periods.map((period: any) => ({
+      period_name: period?.period_name || 'Periodo',
+      average: Number(period?.average ?? 0),
+      passed: Number(period?.passed ?? 0),
+      failed: Number(period?.failed ?? 0),
+    })),
+    students: students.map((student: any) => ({
+      student_id: student?.student_id || '',
+      student_name: student?.student_name || 'Sin nombre',
+      student_email: student?.student_email || null,
+      average: Number(student?.average ?? 0),
+      status: student?.status === 'passed' ? 'passed' : 'failed',
+    })),
+  };
+};
+
+const normalizeStudentDetail = (
+  payload: any,
+  fallbackStudent: TeacherGroupAnalytics['students'][number] | null,
+  fallbackAreaName: string
+): TeacherStudentDetail => ({
+  student: {
+    _id: payload?.student?._id || fallbackStudent?.student_id || '',
+    full_name: payload?.student?.full_name || fallbackStudent?.student_name || 'Sin nombre',
+    email: payload?.student?.email ?? fallbackStudent?.student_email ?? null,
+  },
+  area: {
+    _id: payload?.area?._id || '',
+    name: payload?.area?.name || fallbackAreaName || 'Area',
+  },
+  final_average: Number(payload?.final_average ?? fallbackStudent?.average ?? 0),
+  periods: Array.isArray(payload?.periods)
+    ? payload.periods.map((period: any) => ({
+        period_name: period?.period_name || 'Periodo',
+        average: Number(period?.average ?? 0),
+      }))
+    : [],
+});
+
 const MyGroupsPage = () => {
+  const [years, setYears] = useState<any[]>([]);
+  const [selectedYearId, setSelectedYearId] = useState('');
   const [groups, setGroups] = useState<TeacherGroupAnalytics[]>([]);
-  const [selectedGroupId, setSelectedGroupId] = useState('');
+  const [selectedAssignmentKey, setSelectedAssignmentKey] = useState('');
+  const [selectedStudentId, setSelectedStudentId] = useState('');
+  const [selectedStudentDetail, setSelectedStudentDetail] = useState<TeacherStudentDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [detailLoading, setDetailLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const load = async () => {
+    const loadYears = async () => {
+      try {
+        const response = await academicApi.getSchoolYears();
+        const loadedYears = asArray(response, 'schoolYears');
+        setYears(loadedYears);
+
+        const activeYear = loadedYears.find((year: any) => year?.is_active) || loadedYears[0];
+        if (activeYear?._id) {
+          setSelectedYearId(activeYear._id);
+        }
+      } catch {
+        toast.error('No se pudieron cargar los anos escolares');
+      }
+    };
+
+    void loadYears();
+  }, []);
+
+  useEffect(() => {
+    const loadTeacherMetrics = async () => {
+      if (!selectedYearId) return;
+
       setLoading(true);
       try {
-        const data = await analyticsApi.getTeacherGroupsAnalytics();
-        setGroups(data);
-        if (data[0]?.group_id) setSelectedGroupId(data[0].group_id);
+        const groupsResponse = await analyticsApi.getTeacherGroups(selectedYearId);
+        const assignments = asArray(groupsResponse, 'groups');
+
+        if (assignments.length === 0) {
+          setGroups([]);
+          setSelectedAssignmentKey('');
+          setSelectedStudentId('');
+          setSelectedStudentDetail(null);
+          return;
+        }
+
+        const [performanceResponses, trendResponses] = await Promise.all([
+          Promise.allSettled(
+            assignments.map((assignment: any) =>
+              analyticsApi.getTeacherGroupPerformance(selectedYearId, assignment.group_id, assignment.area_id)
+            )
+          ),
+          Promise.allSettled(
+            assignments.map((assignment: any) =>
+              analyticsApi.getTeacherGroupTrend(selectedYearId, assignment.group_id, assignment.area_id)
+            )
+          ),
+        ]);
+
+        const nextGroups = assignments.map((assignment: any, index: number) => {
+          const performancePayload =
+            performanceResponses[index]?.status === 'fulfilled'
+              ? getPayload(performanceResponses[index].value)
+              : null;
+          const trendPayload =
+            trendResponses[index]?.status === 'fulfilled'
+              ? getPayload(trendResponses[index].value)
+              : null;
+
+          return toTeacherMetric(assignment, performancePayload, trendPayload);
+        });
+
+        setGroups(nextGroups);
+        setSelectedAssignmentKey((current) => {
+          if (current && nextGroups.some((group) => assignmentKey(group.group_id, group.area_id) === current)) {
+            return current;
+          }
+          return assignmentKey(nextGroups[0]?.group_id, nextGroups[0]?.area_id);
+        });
       } catch {
-        toast.error('No se pudieron cargar las métricas del docente');
+        setGroups([]);
+        setSelectedAssignmentKey('');
+        setSelectedStudentId('');
+        setSelectedStudentDetail(null);
+        toast.error('No se pudieron cargar las metricas del docente');
       } finally {
         setLoading(false);
       }
     };
 
-    load();
-  }, []);
+    void loadTeacherMetrics();
+  }, [selectedYearId]);
 
   const activeGroup = useMemo(
-    () => groups.find((group) => group.group_id === selectedGroupId) ?? groups[0] ?? null,
-    [groups, selectedGroupId]
+    () => groups.find((group) => assignmentKey(group.group_id, group.area_id) === selectedAssignmentKey) ?? groups[0] ?? null,
+    [groups, selectedAssignmentKey]
   );
+
+  const activeStudent = useMemo(
+    () => activeGroup?.students.find((student) => student.student_id === selectedStudentId) ?? activeGroup?.students[0] ?? null,
+    [activeGroup, selectedStudentId]
+  );
+
+  const selectableStudents = useMemo(
+    () => (activeGroup?.students || []).filter((student) => Boolean(student.student_id)),
+    [activeGroup]
+  );
+
+  useEffect(() => {
+    setSelectedStudentId((current) => {
+      if (current && activeGroup?.students.some((student) => student.student_id === current)) {
+        return current;
+      }
+      return activeGroup?.students.find((student) => student.student_id)?.student_id || '';
+    });
+  }, [activeGroup]);
+
+  useEffect(() => {
+    const loadStudentDetail = async () => {
+      if (loading || !selectedYearId || !activeGroup?.area_id || !selectedStudentId) {
+        setSelectedStudentDetail(null);
+        setDetailLoading(false);
+        return;
+      }
+
+      setDetailLoading(true);
+      try {
+        const response = await analyticsApi.getTeacherStudentDetail(selectedYearId, selectedStudentId, activeGroup.area_id);
+        const payload = getPayload(response);
+        setSelectedStudentDetail(normalizeStudentDetail(payload, activeStudent, activeGroup.area_name));
+      } catch {
+        setSelectedStudentDetail(null);
+        toast.error('No se pudo cargar el detalle del estudiante');
+      } finally {
+        setDetailLoading(false);
+      }
+    };
+
+    void loadStudentDetail();
+  }, [activeGroup?.area_id, activeGroup?.area_name, activeStudent, loading, selectedStudentId, selectedYearId]);
 
   const periodCategories = activeGroup?.periods.map((period) => period.period_name) ?? [];
   const periodSeries = activeGroup
@@ -73,24 +264,72 @@ const MyGroupsPage = () => {
       ]
     : [];
 
+  const detailCategories = selectedStudentDetail?.periods.map((period) => period.period_name) ?? [];
+  const detailSeries = selectedStudentDetail
+    ? [
+        {
+          id: 'student-period-average',
+          label: `${selectedStudentDetail.area.name} por periodo`,
+          type: 'line' as const,
+          color: '#ea580c',
+          values: selectedStudentDetail.periods.map((period) => period.average),
+        },
+      ]
+    : [];
+
+  const approvalRate = activeGroup?.student_count
+    ? Math.round((activeGroup.passed / activeGroup.student_count) * 100)
+    : 0;
+
+  const selectedStudentStatus = selectedStudentDetail?.final_average !== undefined
+    ? selectedStudentDetail.final_average >= PASSING_SCORE
+      ? 'passed'
+      : 'failed'
+    : activeStudent?.status || 'failed';
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-display font-bold">Mis Grupos y Métricas</h1>
-          <p className="text-muted-foreground">Seguimiento por grupo y área del docente con datos de prueba.</p>
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-2xl font-display font-bold">Mis Grupos y Metricas</h1>
+            <p className="text-muted-foreground">Seguimiento real por grupo, grado y area asignada del docente.</p>
+          </div>
+
+          <Select value={selectedYearId} onValueChange={setSelectedYearId}>
+            <SelectTrigger className="w-56">
+              <SelectValue placeholder="Selecciona un ano escolar" />
+            </SelectTrigger>
+            <SelectContent>
+              {years.map((year) => (
+                <SelectItem key={year._id} value={year._id}>
+                  {year.name || year.year}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {loading ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 3 }).map((_, index) => (
-              <Card key={index}><CardContent className="pt-6"><Skeleton className="h-20" /></CardContent></Card>
+              <Card key={index}>
+                <CardContent className="pt-6">
+                  <Skeleton className="h-20" />
+                </CardContent>
+              </Card>
             ))}
           </div>
+        ) : groups.length === 0 ? (
+          <Card>
+            <CardContent className="py-12 text-center text-muted-foreground">
+              No tienes asignaciones docentes para el ano escolar seleccionado.
+            </CardContent>
+          </Card>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {groups.map((group) => (
-              <Card key={group.group_id} className="hover:shadow-md transition-shadow">
+              <Card key={assignmentKey(group.group_id, group.area_id)} className="hover:shadow-md transition-shadow">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base flex items-center justify-between">
                     {group.group_name}
@@ -118,9 +357,13 @@ const MyGroupsPage = () => {
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <Button size="sm" variant="outline" onClick={() => setSelectedGroupId(group.group_id)}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setSelectedAssignmentKey(assignmentKey(group.group_id, group.area_id))}
+                    >
                       <BarChart3 className="w-4 h-4 mr-1" />
-                      Ver métricas
+                      Ver metricas
                     </Button>
                     <Button size="sm" onClick={() => navigate(`/groups/${group.group_id}/scores`)}>
                       Notas
@@ -134,14 +377,23 @@ const MyGroupsPage = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-4">
-            <CardTitle>Analítica del Grupo</CardTitle>
-            <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
-              <SelectTrigger className="w-52">
-                <SelectValue placeholder="Selecciona grupo" />
+            <div className="space-y-2">
+              <CardTitle>Analitica del Grupo</CardTitle>
+              {activeGroup && (
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="outline">Grupo {activeGroup.group_name}</Badge>
+                  <Badge variant="outline">Grado {activeGroup.grade_name}</Badge>
+                  <Badge variant="secondary">{activeGroup.area_name}</Badge>
+                </div>
+              )}
+            </div>
+            <Select value={selectedAssignmentKey} onValueChange={setSelectedAssignmentKey}>
+              <SelectTrigger className="w-60">
+                <SelectValue placeholder="Selecciona grupo y area" />
               </SelectTrigger>
               <SelectContent>
                 {groups.map((group) => (
-                  <SelectItem key={group.group_id} value={group.group_id}>
+                  <SelectItem key={assignmentKey(group.group_id, group.area_id)} value={assignmentKey(group.group_id, group.area_id)}>
                     {group.group_name} · {group.area_name}
                   </SelectItem>
                 ))}
@@ -155,10 +407,10 @@ const MyGroupsPage = () => {
               <>
                 <div className="grid gap-4 md:grid-cols-4">
                   {[
-                    { label: 'Área', value: activeGroup.area_name },
+                    { label: 'Area', value: activeGroup.area_name },
                     { label: 'Estudiantes', value: activeGroup.student_count },
                     { label: 'Promedio', value: activeGroup.average.toFixed(1) },
-                    { label: 'Aprobación', value: `${Math.round((activeGroup.passed / activeGroup.student_count) * 100)}%` },
+                    { label: 'Aprobacion', value: `${approvalRate}%` },
                   ].map((item) => (
                     <div key={item.label} className="rounded-2xl border border-border/60 bg-muted/30 p-4">
                       <p className="text-xs text-muted-foreground">{item.label}</p>
@@ -170,10 +422,14 @@ const MyGroupsPage = () => {
                 <div className="grid gap-4 xl:grid-cols-2">
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-base">Evolución del Grupo</CardTitle>
+                      <CardTitle className="text-base">Evolucion del Grupo</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <LightweightCategoryChart categories={periodCategories} series={periodSeries} height={300} />
+                      {periodCategories.length > 0 ? (
+                        <LightweightCategoryChart categories={periodCategories} series={periodSeries} height={300} />
+                      ) : (
+                        <p className="text-center text-muted-foreground py-8">No hay datos de tendencia por periodo.</p>
+                      )}
                     </CardContent>
                   </Card>
 
@@ -182,7 +438,11 @@ const MyGroupsPage = () => {
                       <CardTitle className="text-base">Promedio por Estudiante</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <LightweightCategoryChart categories={studentCategories} series={studentSeries} height={300} />
+                      {studentCategories.length > 0 ? (
+                        <LightweightCategoryChart categories={studentCategories} series={studentSeries} height={300} />
+                      ) : (
+                        <p className="text-center text-muted-foreground py-8">No hay estudiantes con metricas consolidadas.</p>
+                      )}
                     </CardContent>
                   </Card>
                 </div>
@@ -192,22 +452,170 @@ const MyGroupsPage = () => {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Estudiante</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Promedio</TableHead>
+                        <TableHead>Estado</TableHead>
+                        <TableHead className="text-right">Detalle</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {activeGroup.students.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                            No hay estudiantes para esta asignacion.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        activeGroup.students.map((student) => (
+                          <TableRow
+                            key={student.student_id || `${student.student_name}-${student.average}`}
+                            className={student.student_id === selectedStudentId ? 'bg-muted/40' : ''}
+                          >
+                            <TableCell className="font-medium">{student.student_name}</TableCell>
+                            <TableCell>{student.student_email || 'Sin email'}</TableCell>
+                            <TableCell>{student.average.toFixed(1)}</TableCell>
+                            <TableCell>
+                              <Badge variant={student.status === 'passed' ? 'default' : 'destructive'}>
+                                {student.status === 'passed' ? 'Aprobado' : 'En riesgo'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                size="sm"
+                                variant={student.student_id === selectedStudentId ? 'default' : 'outline'}
+                                disabled={!student.student_id}
+                                onClick={() => setSelectedStudentId(student.student_id || '')}
+                              >
+                                Ver detalle
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between gap-4">
+            <div>
+              <CardTitle>Detalle del Estudiante</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Consulta el consolidado real por periodo para el estudiante seleccionado.
+              </p>
+            </div>
+            <Select value={selectedStudentId} onValueChange={setSelectedStudentId} disabled={selectableStudents.length === 0}>
+              <SelectTrigger className="w-72">
+                <SelectValue placeholder="Selecciona un estudiante" />
+              </SelectTrigger>
+              <SelectContent>
+                {selectableStudents.map((student) => (
+                  <SelectItem key={student.student_id} value={student.student_id || ''}>
+                    {student.student_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {!activeGroup || activeGroup.students.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">
+                No hay estudiantes activos para esta asignacion docente.
+              </p>
+            ) : detailLoading ? (
+              <div className="grid gap-4">
+                <div className="grid gap-4 md:grid-cols-4">
+                  {Array.from({ length: 4 }).map((_, index) => (
+                    <Skeleton key={index} className="h-20" />
+                  ))}
+                </div>
+                <Skeleton className="h-72 w-full" />
+              </div>
+            ) : !selectedStudentDetail ? (
+              <div className="flex items-center justify-center gap-3 rounded-2xl border border-dashed py-10 text-muted-foreground">
+                <Eye className="h-4 w-4" />
+                No se pudo cargar el detalle del estudiante seleccionado.
+              </div>
+            ) : (
+              <>
+                <div className="grid gap-4 md:grid-cols-4">
+                  <div className="rounded-2xl border border-border/60 bg-muted/30 p-4">
+                    <p className="text-xs text-muted-foreground">Estudiante</p>
+                    <p className="mt-1 text-lg font-display font-bold">{selectedStudentDetail.student.full_name}</p>
+                  </div>
+                  <div className="rounded-2xl border border-border/60 bg-muted/30 p-4">
+                    <p className="text-xs text-muted-foreground">Email</p>
+                    <p className="mt-1 text-lg font-display font-bold break-words">
+                      {selectedStudentDetail.student.email || 'Sin email'}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-border/60 bg-muted/30 p-4">
+                    <p className="text-xs text-muted-foreground">Estado</p>
+                    <div className="mt-2">
+                      <Badge variant={selectedStudentStatus === 'passed' ? 'default' : 'destructive'}>
+                        {selectedStudentStatus === 'passed' ? 'Aprobado' : 'En riesgo'}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-border/60 bg-muted/30 p-4">
+                    <p className="text-xs text-muted-foreground">Promedio final</p>
+                    <p className="mt-1 text-2xl font-display font-bold">{selectedStudentDetail.final_average.toFixed(1)}</p>
+                  </div>
+                </div>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">
+                      Evolucion de {selectedStudentDetail.student.full_name} en {selectedStudentDetail.area.name}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {detailCategories.length > 0 ? (
+                      <LightweightCategoryChart categories={detailCategories} series={detailSeries} height={280} />
+                    ) : (
+                      <p className="text-center text-muted-foreground py-8">
+                        Este estudiante aun no tiene resultados consolidados por periodo en esta area.
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <div className="rounded-md border overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Periodo</TableHead>
                         <TableHead>Promedio</TableHead>
                         <TableHead>Estado</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {activeGroup.students.map((student) => (
-                        <TableRow key={student.student_name}>
-                          <TableCell className="font-medium">{student.student_name}</TableCell>
-                          <TableCell>{student.average.toFixed(1)}</TableCell>
-                          <TableCell>
-                            <Badge variant={student.status === 'passed' ? 'default' : 'destructive'}>
-                              {student.status === 'passed' ? 'Aprobado' : 'En riesgo'}
-                            </Badge>
+                      {selectedStudentDetail.periods.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
+                            No hay periodos consolidados para este estudiante.
                           </TableCell>
                         </TableRow>
-                      ))}
+                      ) : (
+                        selectedStudentDetail.periods.map((period) => {
+                          const periodPassed = period.average >= PASSING_SCORE;
+                          return (
+                            <TableRow key={period.period_name}>
+                              <TableCell className="font-medium">{period.period_name}</TableCell>
+                              <TableCell>{period.average.toFixed(1)}</TableCell>
+                              <TableCell>
+                                <Badge variant={periodPassed ? 'default' : 'destructive'}>
+                                  {periodPassed ? 'Aprobado' : 'En riesgo'}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                      )}
                     </TableBody>
                   </Table>
                 </div>

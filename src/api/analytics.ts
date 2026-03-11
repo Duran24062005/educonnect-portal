@@ -25,13 +25,37 @@ export interface TeacherGroupAnalytics {
   group_id: string;
   group_name: string;
   grade_name: string;
+  area_id?: string;
   area_name: string;
   student_count: number;
   average: number;
   passed: number;
   failed: number;
   periods: Array<{ period_name: string; average: number; passed: number; failed: number }>;
-  students: Array<{ student_name: string; average: number; status: 'passed' | 'failed' }>;
+  students: Array<{
+    student_id?: string;
+    student_name: string;
+    student_email?: string | null;
+    average: number;
+    status: 'passed' | 'failed';
+  }>;
+}
+
+export interface TeacherStudentDetail {
+  student: {
+    _id: string;
+    full_name: string;
+    email?: string | null;
+  };
+  area: {
+    _id: string;
+    name: string;
+  };
+  final_average: number;
+  periods: Array<{
+    period_name: string;
+    average: number;
+  }>;
 }
 
 const studentOverview: StudentOverview = {
@@ -187,6 +211,37 @@ export const analyticsApi = {
     await wait();
     return teacherGroups.find((group) => group.group_id === groupId) ?? teacherGroups[0];
   },
+  getTeacherGroups: (schoolYearId: string) =>
+    api.get('/api/analytics/teacher/me/groups', {
+      params: {
+        school_year_id: assertObjectId(schoolYearId, 'school_year_id'),
+      },
+    }),
+  getTeacherGroupPerformance: (schoolYearId: string, groupId: string, areaId: string, periodId?: string) =>
+    api.get('/api/analytics/teacher/me/group-performance', {
+      params: {
+        school_year_id: assertObjectId(schoolYearId, 'school_year_id'),
+        group_id: assertObjectId(groupId, 'group_id'),
+        area_id: assertObjectId(areaId, 'area_id'),
+        period_id: periodId ? assertObjectId(periodId, 'period_id') : undefined,
+      },
+    }),
+  getTeacherGroupTrend: (schoolYearId: string, groupId: string, areaId: string) =>
+    api.get('/api/analytics/teacher/me/group-trend', {
+      params: {
+        school_year_id: assertObjectId(schoolYearId, 'school_year_id'),
+        group_id: assertObjectId(groupId, 'group_id'),
+        area_id: assertObjectId(areaId, 'area_id'),
+      },
+    }),
+  getTeacherStudentDetail: (schoolYearId: string, studentId: string, areaId: string) =>
+    api.get('/api/analytics/teacher/me/student-detail', {
+      params: {
+        school_year_id: assertObjectId(schoolYearId, 'school_year_id'),
+        student_id: assertObjectId(studentId, 'student_id'),
+        area_id: assertObjectId(areaId, 'area_id'),
+      },
+    }),
 
   // Admin analytics backed by the real API, aligned with PRD 008.
   getAdminInstitutionOverview: (schoolYearId: string, periodId?: string) =>
