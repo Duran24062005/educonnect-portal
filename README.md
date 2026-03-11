@@ -46,6 +46,20 @@ npm run build
 npm run preview
 ```
 
+## Documentacion interna
+
+La documentacion tecnica del frontend vive en:
+
+- `docs/frontend/README.md`
+
+Lectura recomendada para onboarding:
+
+1. `docs/frontend/architecture.md`
+2. `docs/frontend/routing-and-auth.md`
+3. `docs/frontend/api-integration.md`
+4. `docs/frontend/modules/*.md`
+5. `docs/frontend/adrs/*.md`
+
 ## Flujo de autenticación
 
 1. Registro inicial (`/register`) con email y contraseña.
