@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,9 +21,17 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { Search, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getRoleLabel } from '@/lib/auth';
+import { getMediaUrl } from '@/lib/media';
 
 const statusColors: Record<string, string> = {
   active: 'bg-success/10 text-success border-success/20',
@@ -39,12 +48,29 @@ const roleColors: Record<string, string> = {
   parent: 'bg-warning/10 text-warning border-warning/20',
 };
 
+const resolveFullName = (user: any) => {
+  const person = user?.person;
+  if (!person) return 'Sin nombre';
+  return `${person.first_name || ''} ${person.last_name || ''}`.trim() || 'Sin nombre';
+};
+
+const resolveInitials = (user: any) => {
+  const person = user?.person;
+  if (person?.first_name || person?.last_name) {
+    return `${person?.first_name?.[0] || ''}${person?.last_name?.[0] || ''}`.toUpperCase() || 'U';
+  }
+  return String(user?.email || 'U').charAt(0).toUpperCase();
+};
+
+const resolveAvatarUrl = (user: any) => getMediaUrl(user?.person?.profile_photo_url || user?.person?.profile_photo);
+
 const UsersPage = () => {
   const { users: allUsers, isLoading: loading, isError, refetch } = useUsers();
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [page, setPage] = useState(1);
+  const [selectedUser, setSelectedUser] = useState<any | null>(null);
   const limit = 10;
 
   const filteredUsers = useMemo(() => {
@@ -147,6 +173,8 @@ const UsersPage = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Avatar</TableHead>
+                    <TableHead>Nombre</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Rol</TableHead>
                     <TableHead>Estado</TableHead>
@@ -157,6 +185,8 @@ const UsersPage = () => {
                   {loading ? (
                     Array.from({ length: 5 }).map((_, i) => (
                       <TableRow key={i}>
+                        <TableCell><Skeleton className="h-10 w-10 rounded-full" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-36" /></TableCell>
                         <TableCell><Skeleton className="h-4 w-40" /></TableCell>
                         <TableCell><Skeleton className="h-5 w-16" /></TableCell>
                         <TableCell><Skeleton className="h-5 w-16" /></TableCell>
@@ -165,14 +195,25 @@ const UsersPage = () => {
                     ))
                   ) : users.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                         No se encontraron usuarios
                       </TableCell>
                     </TableRow>
                   ) : (
                     users.map((u) => (
-                      <TableRow key={u._id}>
-                        <TableCell className="font-medium">{u.email}</TableCell>
+                      <TableRow
+                        key={u._id}
+                        className="cursor-pointer hover:bg-muted/40"
+                        onClick={() => setSelectedUser(u)}
+                      >
+                        <TableCell>
+                          <Avatar className="h-10 w-10">
+                            <AvatarImage src={resolveAvatarUrl(u) || undefined} alt={resolveFullName(u)} />
+                            <AvatarFallback>{resolveInitials(u)}</AvatarFallback>
+                          </Avatar>
+                        </TableCell>
+                        <TableCell className="font-medium">{resolveFullName(u)}</TableCell>
+                        <TableCell>{u.email}</TableCell>
                         <TableCell>
                           <Badge variant="outline" className={roleColors[String(u.role || '').toLowerCase()] || ''}>
                             {getRoleLabel(u.role)}
@@ -184,7 +225,7 @@ const UsersPage = () => {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1">
+                          <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                             {u.status === 'active' && (
                               <Button variant="ghost" size="sm" onClick={() => handleStatusChange(u._id, 'blocked')}>
                                 Bloquear
@@ -240,6 +281,81 @@ const UsersPage = () => {
             )}
           </CardContent>
         </Card>
+
+        <Dialog open={Boolean(selectedUser)} onOpenChange={(open) => !open && setSelectedUser(null)}>
+          <DialogContent className="sm:max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Detalle del usuario</DialogTitle>
+              <DialogDescription>
+                Información general y datos de perfil del usuario seleccionado.
+              </DialogDescription>
+            </DialogHeader>
+
+            {selectedUser && (
+              <div className="space-y-6">
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-16 w-16">
+                    <AvatarImage src={resolveAvatarUrl(selectedUser) || undefined} alt={resolveFullName(selectedUser)} />
+                    <AvatarFallback className="text-lg">{resolveInitials(selectedUser)}</AvatarFallback>
+                  </Avatar>
+                  <div className="space-y-1">
+                    <p className="text-lg font-semibold">{resolveFullName(selectedUser)}</p>
+                    <p className="text-sm text-muted-foreground">{selectedUser.email}</p>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className={roleColors[String(selectedUser.role || '').toLowerCase()] || ''}>
+                        {getRoleLabel(selectedUser.role)}
+                      </Badge>
+                      <Badge variant="outline" className={statusColors[selectedUser.status] || ''}>
+                        {selectedUser.status}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Nombre</p>
+                    <p className="text-sm">{selectedUser.person?.first_name || 'No disponible'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Apellido</p>
+                    <p className="text-sm">{selectedUser.person?.last_name || 'No disponible'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Email</p>
+                    <p className="text-sm">{selectedUser.email || 'No disponible'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Rol</p>
+                    <p className="text-sm">{getRoleLabel(selectedUser.role)}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Estado</p>
+                    <p className="text-sm">{selectedUser.status || 'No disponible'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Teléfono</p>
+                    <p className="text-sm">{selectedUser.person?.phone || 'No disponible'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Documento</p>
+                    <p className="text-sm">
+                      {selectedUser.person?.document_type && selectedUser.person?.document_number
+                        ? `${selectedUser.person.document_type} ${selectedUser.person.document_number}`
+                        : 'No disponible'}
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Fecha de nacimiento</p>
+                    <p className="text-sm">
+                      {selectedUser.person?.born_date ? String(selectedUser.person.born_date).slice(0, 10) : 'No disponible'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );

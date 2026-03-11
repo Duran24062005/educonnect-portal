@@ -44,6 +44,8 @@ const RegisterPage = () => {
   const onSubmit = async (data: Required<FormData>) => {
     setLoading(true);
     try {
+      console.log(data);
+      
       const res = await authApi.register(data);
       const payload = res.data?.data ?? res.data;
       const { token, user, profile_complete } = payload;
