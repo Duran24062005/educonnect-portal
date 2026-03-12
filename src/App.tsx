@@ -33,8 +33,11 @@ import MyGroupsPage from './pages/teacher/MyGroupsPage';
 import GroupGradeItemsPage from './pages/teacher/GroupGradeItemsPage';
 import GroupScoresPage from './pages/teacher/GroupScoresPage';
 import PeriodResultsPage from './pages/teacher/PeriodResultsPage';
+import TeacherActivitiesPage from './pages/teacher/TeacherActivitiesPage';
+import MyActivitiesPage from './pages/student/MyActivitiesPage';
 import MyGradesPage from './pages/student/MyGradesPage';
 import MyResultsPage from './pages/student/MyResultsPage';
+import StudentActivityDetailPage from './pages/student/StudentActivityDetailPage';
 import ProfilePage from './pages/ProfilePage';
 import EvaluationStatsPage from './pages/EvaluationStatsPage';
 import NotFound from "./pages/NotFound";
@@ -96,11 +99,14 @@ const App = () => (
 
             {/* Teacher routes */}
             <Route path="/my-groups" element={<ProfileCompleteGuard><RoleRoute roles={['teacher']}><MyGroupsPage /></RoleRoute></ProfileCompleteGuard>} />
+            <Route path="/teacher/activities/:groupId/:areaId" element={<ProfileCompleteGuard><RoleRoute roles={['teacher']}><TeacherActivitiesPage /></RoleRoute></ProfileCompleteGuard>} />
             <Route path="/groups/:id/grade-items" element={<ProfileCompleteGuard><RoleRoute roles={['teacher']}><GroupGradeItemsPage /></RoleRoute></ProfileCompleteGuard>} />
             <Route path="/groups/:id/scores" element={<ProfileCompleteGuard><RoleRoute roles={['teacher']}><GroupScoresPage /></RoleRoute></ProfileCompleteGuard>} />
             <Route path="/period-results" element={<ProfileCompleteGuard><RoleRoute roles={['teacher']}><PeriodResultsPage /></RoleRoute></ProfileCompleteGuard>} />
 
             {/* Student routes */}
+            <Route path="/my-activities" element={<ProfileCompleteGuard><RoleRoute roles={['student']}><MyActivitiesPage /></RoleRoute></ProfileCompleteGuard>} />
+            <Route path="/my-activities/:activityId" element={<ProfileCompleteGuard><RoleRoute roles={['student']}><StudentActivityDetailPage /></RoleRoute></ProfileCompleteGuard>} />
             <Route path="/my-grades" element={<ProfileCompleteGuard><RoleRoute roles={['student']}><MyGradesPage /></RoleRoute></ProfileCompleteGuard>} />
             <Route path="/my-results" element={<ProfileCompleteGuard><RoleRoute roles={['student']}><MyResultsPage /></RoleRoute></ProfileCompleteGuard>} />
 

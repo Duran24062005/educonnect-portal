@@ -12,6 +12,7 @@ import {
   Timer,
   ArrowRightLeft,
   GitMerge,
+  FileText,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
@@ -59,6 +60,7 @@ const teacherItems = [
 
 const studentItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
+  { title: 'Mis Actividades', url: '/my-activities', icon: FileText },
   { title: 'Mis Calificaciones', url: '/my-grades', icon: ClipboardList },
   { title: 'Mis Resultados', url: '/my-results', icon: BarChart3 },
 ];

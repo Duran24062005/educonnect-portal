@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
-import { BarChart3, Eye, Users } from 'lucide-react';
+import { BarChart3, Eye, FileText, Users } from 'lucide-react';
 import LightweightCategoryChart from '@/components/charts/LightweightCategoryChart';
 
 const PASSING_SCORE = 6;
@@ -364,6 +364,14 @@ const MyGroupsPage = () => {
                     >
                       <BarChart3 className="w-4 h-4 mr-1" />
                       Ver metricas
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => navigate(`/teacher/activities/${group.group_id}/${group.area_id}?school_year_id=${selectedYearId}`)}
+                    >
+                      <FileText className="w-4 h-4 mr-1" />
+                      Actividades
                     </Button>
                     <Button size="sm" onClick={() => navigate(`/groups/${group.group_id}/scores`)}>
                       Notas
