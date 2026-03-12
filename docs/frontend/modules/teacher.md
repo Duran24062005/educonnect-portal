@@ -23,10 +23,13 @@ Responsabilidad:
 
 Dependencias:
 
-- `analytics/teacher/me/groups`
-- `analytics/teacher/me/group-performance`
-- `analytics/teacher/me/group-trend`
+- `analytics/teacher/me/dashboard-summary`
 - `analytics/teacher/me/student-detail`
+
+Nota de rendimiento:
+
+- desde marzo de 2026, `MyGroupsPage` usa un resumen agregado por docente y anio escolar
+- los graficos por grupo ya no deben disparar una request separada por asignacion al entrar a la pagina
 
 ### `GroupGradeItemsPage`
 
@@ -52,6 +55,7 @@ Responsabilidad:
 
 - algunas pantallas de docente siguen cargando todas las areas del sistema en lugar de limitarse a las areas asignadas al profesor
 - si no existen resultados consolidados (`periodAreaResult` o `finalResult`), las graficas pueden verse vacias sin que exista bug en frontend
+- el detalle de estudiante sigue siendo carga diferida y se consulta solo para la seleccion activa
 
 ## Regla de negocio critica
 

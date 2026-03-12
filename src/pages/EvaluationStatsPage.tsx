@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { academicApi } from '@/api/academic';
-import { analyticsApi } from '@/api/analytics';
 import { evaluationsApi } from '@/api/evaluations';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,110 +9,69 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { isValidObjectId } from '@/lib/object-id';
 import LightweightCategoryChart from '@/components/charts/LightweightCategoryChart';
-
-const toArray = (res: any, key?: string) => {
-  const data = res?.data?.data ?? res?.data;
-  if (key && Array.isArray(data?.[key])) return data[key];
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.items)) return data.items;
-  if (Array.isArray(data?.schoolYears)) return data.schoolYears;
-  return [];
-};
+import { useSchoolYears } from '@/hooks/useSchoolYears';
+import { useAdminDashboardSummary } from '@/hooks/useDashboardSummary';
 
 const EvaluationStatsPage = () => {
   const { school_year_id } = useParams<{ school_year_id: string }>();
   const navigate = useNavigate();
-  const [years, setYears] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
-  const [analyticsSummary, setAnalyticsSummary] = useState<any>(null);
-  const [areaStats, setAreaStats] = useState<any[]>([]);
-  const [gradeStats, setGradeStats] = useState<any[]>([]);
-  const [trendStats, setTrendStats] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [statsLoading, setStatsLoading] = useState(false);
   const [selectedYear, setSelectedYear] = useState(school_year_id || '');
+  const { data: years = [], isLoading: yearsLoading, error: yearsError } = useSchoolYears();
 
   useEffect(() => {
-    const loadYears = async () => {
-      try {
-        const res = await academicApi.getSchoolYears();
-        const loadedYears = toArray(res, 'schoolYears');
-        setYears(loadedYears);
-
-        const active = loadedYears.find((year: any) => year?.is_active);
-        if (!selectedYear && active?._id) setSelectedYear(active._id);
-        if (!selectedYear && loadedYears[0]?._id) setSelectedYear(loadedYears[0]._id);
-      } catch {
-        toast.error('No se pudieron cargar los años escolares');
-      }
-    };
-
-    loadYears();
-  }, []);
+    if (selectedYear || years.length === 0) return;
+    const active = years.find((year: any) => year?.is_active) || years[0];
+    if (active?._id) setSelectedYear(active._id);
+  }, [selectedYear, years]);
 
   useEffect(() => {
-    const yearId = school_year_id || selectedYear;
+    if (yearsError) {
+      toast.error('No se pudieron cargar los años escolares');
+    }
+  }, [yearsError]);
+
+  const yearId = school_year_id || selectedYear;
+  const {
+    data: dashboardSummary,
+    isLoading: summaryLoading,
+    error: summaryError,
+  } = useAdminDashboardSummary(yearId && isValidObjectId(yearId) ? yearId : undefined);
+
+  useEffect(() => {
     if (!yearId) return;
     if (!isValidObjectId(yearId)) {
       setStats(null);
-      setLoading(false);
+      setStatsLoading(false);
       toast.error('ID de año escolar inválido');
       return;
     }
-    setLoading(true);
 
-    Promise.allSettled([
-      evaluationsApi.getYearStats(yearId),
-      analyticsApi.getAdminInstitutionOverview(yearId),
-      analyticsApi.getAdminInstitutionTrend(yearId),
-      analyticsApi.getAdminByArea(yearId),
-      analyticsApi.getAdminByGrade(yearId),
-    ])
-      .then(([statsRes, overviewRes, trendRes, areaRes, gradeRes]) => {
-        if (statsRes.status === 'fulfilled') {
-          const data = statsRes.value.data?.data ?? statsRes.value.data;
-          setStats(data || null);
-        } else {
-          setStats(null);
-        }
-
-        if (overviewRes.status === 'fulfilled') {
-          const data = overviewRes.value.data?.data ?? overviewRes.value.data;
-          setAnalyticsSummary(data?.summary || null);
-        } else {
-          setAnalyticsSummary(null);
-        }
-
-        if (trendRes.status === 'fulfilled') {
-          const data = trendRes.value.data?.data ?? trendRes.value.data;
-          setTrendStats(Array.isArray(data?.periods) ? data.periods : []);
-        } else {
-          setTrendStats([]);
-        }
-
-        if (areaRes.status === 'fulfilled') {
-          const data = areaRes.value.data?.data ?? areaRes.value.data;
-          setAreaStats(Array.isArray(data?.areas) ? data.areas : []);
-        } else {
-          setAreaStats([]);
-        }
-
-        if (gradeRes.status === 'fulfilled') {
-          const data = gradeRes.value.data?.data ?? gradeRes.value.data;
-          setGradeStats(Array.isArray(data?.grades) ? data.grades : []);
-        } else {
-          setGradeStats([]);
-        }
+    setStatsLoading(true);
+    evaluationsApi.getYearStats(yearId)
+      .then((statsRes) => {
+        const data = statsRes.data?.data ?? statsRes.data;
+        setStats(data || null);
       })
       .catch(() => {
         setStats(null);
-        setAnalyticsSummary(null);
-        setTrendStats([]);
-        setAreaStats([]);
-        setGradeStats([]);
         toast.error('No se pudieron cargar las estadísticas');
       })
-      .finally(() => setLoading(false));
+      .finally(() => setStatsLoading(false));
   }, [school_year_id, selectedYear]);
+
+  useEffect(() => {
+    if (summaryError) {
+      toast.error('No se pudieron cargar las analíticas');
+    }
+  }, [summaryError]);
+
+  const analyticsSummary = dashboardSummary?.institution_overview || null;
+  const areaStats = Array.isArray(dashboardSummary?.institution_areas) ? dashboardSummary.institution_areas : [];
+  const gradeStats = Array.isArray(dashboardSummary?.institution_grades) ? dashboardSummary.institution_grades : [];
+  const trendStats = Array.isArray(dashboardSummary?.institution_trend) ? dashboardSummary.institution_trend : [];
+  const loading = yearsLoading || (Boolean(yearId) && summaryLoading) || statsLoading;
 
   const onYearChange = (yearId: string) => {
     setSelectedYear(yearId);

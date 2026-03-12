@@ -58,6 +58,32 @@ export interface TeacherStudentDetail {
   }>;
 }
 
+export interface AdminDashboardSummary {
+  school_year_id: string;
+  stats: any;
+  pending: {
+    count: number;
+    users: any[];
+  };
+  institution_overview: any;
+  institution_trend: any[];
+  institution_grades: any[];
+  institution_areas: any[];
+}
+
+export interface TeacherDashboardSummary {
+  school_year_id: string;
+  summary: {
+    assignment_count: number;
+    group_count: number;
+    student_count: number;
+    average: number;
+    passed: number;
+    failed: number;
+  };
+  groups: TeacherGroupAnalytics[];
+}
+
 const studentOverview: StudentOverview = {
   general_average: 8.1,
   final_status: 'passed',
@@ -217,6 +243,12 @@ export const analyticsApi = {
         school_year_id: assertObjectId(schoolYearId, 'school_year_id'),
       },
     }),
+  getTeacherDashboardSummary: (schoolYearId: string) =>
+    api.get('/api/analytics/teacher/me/dashboard-summary', {
+      params: {
+        school_year_id: assertObjectId(schoolYearId, 'school_year_id'),
+      },
+    }),
   getTeacherGroupPerformance: (schoolYearId: string, groupId: string, areaId: string, periodId?: string) =>
     api.get('/api/analytics/teacher/me/group-performance', {
       params: {
@@ -244,6 +276,12 @@ export const analyticsApi = {
     }),
 
   // Admin analytics backed by the real API, aligned with PRD 008.
+  getAdminDashboardSummary: (schoolYearId: string) =>
+    api.get('/api/analytics/admin/dashboard-summary', {
+      params: {
+        school_year_id: assertObjectId(schoolYearId, 'school_year_id'),
+      },
+    }),
   getAdminInstitutionOverview: (schoolYearId: string, periodId?: string) =>
     api.get('/api/analytics/admin/institution-overview', {
       params: {

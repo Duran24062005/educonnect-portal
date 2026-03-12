@@ -1,15 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import { useAuthStore } from '@/store/auth';
-import { usersApi } from '@/api/users';
-import { academicApi } from '@/api/academic';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Users, UserCheck, GraduationCap, Calendar, Clock, AlertCircle } from 'lucide-react';
+import { Users, UserCheck, GraduationCap, Calendar, Clock, AlertCircle, BookOpen, BarChart3 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { normalizeRole } from '@/lib/auth';
 import LightweightCategoryChart from '@/components/charts/LightweightCategoryChart';
-import { analyticsApi } from '@/api/analytics';
+import { useSchoolYears } from '@/hooks/useSchoolYears';
+import { useAdminDashboardSummary, useTeacherDashboardSummary } from '@/hooks/useDashboardSummary';
 
 const StatCard = ({
   title,
@@ -43,16 +42,24 @@ const StatCard = ({
 );
 
 const AdminDashboard = () => {
-  const [stats, setStats] = useState<any>(null);
-  const [activeYear, setActiveYear] = useState<any>(null);
-  const [pending, setPending] = useState<any[]>([]);
-  const [institutionOverview, setInstitutionOverview] = useState<any>(null);
-  const [institutionTrend, setInstitutionTrend] = useState<any[]>([]);
-  const [institutionGrades, setInstitutionGrades] = useState<any[]>([]);
-  const [institutionAreas, setInstitutionAreas] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: years = [], isLoading: yearsLoading } = useSchoolYears();
+  const activeYear = useMemo(
+    () => years.find((year: any) => year?.is_active) || years[0] || null,
+    [years]
+  );
+  const activeYearId = activeYear?._id;
+  const { data: summary, isLoading: summaryLoading } = useAdminDashboardSummary(activeYearId);
+  const loading = yearsLoading || (Boolean(activeYearId) && summaryLoading);
+
+  const stats = summary?.stats || {};
+  const pending = summary?.pending?.users || [];
+  const institutionOverview = summary?.institution_overview || null;
+  const institutionTrend = Array.isArray(summary?.institution_trend) ? summary.institution_trend : [];
+  const institutionGrades = Array.isArray(summary?.institution_grades) ? summary.institution_grades : [];
+  const institutionAreas = Array.isArray(summary?.institution_areas) ? summary.institution_areas : [];
   const roleStats = stats?.by_role || {};
   const statusStats = stats?.by_status || {};
+
   const roleCategories = ['Students', 'Teachers', 'Admins', 'Parents'];
   const roleSeries = [
     {
@@ -61,13 +68,14 @@ const AdminDashboard = () => {
       type: 'area' as const,
       color: '#0f766e',
       values: [
-        Number(roleStats?.student || stats?.students || 0),
-        Number(roleStats?.teacher || stats?.teachers || 0),
+        Number(roleStats?.student || 0),
+        Number(roleStats?.teacher || 0),
         Number(roleStats?.admin || 0),
         Number(roleStats?.parent || roleStats?.guardian || 0),
       ],
     },
   ];
+
   const statusCategories = ['Pending', 'Active', 'Inactive', 'Blocked', 'Egresado'];
   const statusSeries = [
     {
@@ -76,7 +84,7 @@ const AdminDashboard = () => {
       type: 'histogram' as const,
       color: '#2563eb',
       values: [
-        Number(statusStats?.pending || stats?.pending || 0),
+        Number(statusStats?.pending || pending.length || 0),
         Number(statusStats?.active || 0),
         Number(statusStats?.inactive || 0),
         Number(statusStats?.blocked || 0),
@@ -84,125 +92,46 @@ const AdminDashboard = () => {
       ],
     },
   ];
-  const institutionalPeriodCategories = institutionTrend.map((period) => period.period_name);
+
+  const institutionalPeriodCategories = institutionTrend.map((period: any) => period.period_name);
   const institutionalPeriodSeries = [
     {
       id: 'institution-average',
       label: 'Promedio institucional',
       type: 'area' as const,
       color: '#0f766e',
-      values: institutionTrend.map((period) => Number(period.average)),
+      values: institutionTrend.map((period: any) => Number(period.average)),
     },
     {
       id: 'institution-failed',
       label: 'Reprobados',
       type: 'line' as const,
       color: '#dc2626',
-      values: institutionTrend.map((period) => Number(period.failed)),
+      values: institutionTrend.map((period: any) => Number(period.failed)),
     },
   ];
-  const gradeCategories = institutionGrades.map((grade) => `Grado ${grade.grade_name}`);
+
+  const gradeCategories = institutionGrades.map((grade: any) => `Grado ${grade.grade_name}`);
   const gradeSeries = [
     {
       id: 'grade-average',
       label: 'Promedio por grado',
       type: 'histogram' as const,
       color: '#2563eb',
-      values: institutionGrades.map((grade) => Number(grade.average)),
+      values: institutionGrades.map((grade: any) => Number(grade.average)),
     },
   ];
-  const areaCategories = institutionAreas.map((area) => area.area_name);
+
+  const areaCategories = institutionAreas.map((area: any) => area.area_name);
   const areaSeries = [
     {
       id: 'area-average',
       label: 'Promedio por área',
       type: 'line' as const,
       color: '#7c3aed',
-      values: institutionAreas.map((area) => Number(area.average)),
+      values: institutionAreas.map((area: any) => Number(area.average)),
     },
   ];
-
-  useEffect(() => {
-    const load = async () => {
-      const getActiveYearWithFallback = async () => {
-        try {
-          return await academicApi.getActiveSchoolYear();
-        } catch {
-          const yearsRes = await academicApi.getSchoolYears();
-          const yearsPayload = yearsRes.data?.data ?? yearsRes.data;
-          const years = Array.isArray(yearsPayload?.schoolYears)
-            ? yearsPayload.schoolYears
-            : Array.isArray(yearsPayload)
-              ? yearsPayload
-              : [];
-          const active = years.find((year: any) => year?.is_active) || null;
-          return { data: active };
-        }
-      };
-
-      try {
-        const [statsRes, yearRes, pendingRes] = await Promise.allSettled([
-          usersApi.getStats(),
-          getActiveYearWithFallback(),
-          usersApi.getPending(),
-        ]);
-        if (statsRes.status === 'fulfilled') {
-          const statsPayload = statsRes.value.data?.data ?? statsRes.value.data;
-          setStats(statsPayload && typeof statsPayload === 'object' ? statsPayload : null);
-        }
-        let resolvedActiveYear: any = null;
-        if (yearRes.status === 'fulfilled') {
-          const yearPayload = yearRes.value.data?.data ?? yearRes.value.data;
-          resolvedActiveYear = yearPayload && typeof yearPayload === 'object' ? yearPayload : null;
-          setActiveYear(resolvedActiveYear);
-        }
-        if (pendingRes.status === 'fulfilled') {
-          const pendingPayload = pendingRes.value.data?.data ?? pendingRes.value.data;
-          const pendingList = Array.isArray(pendingPayload?.users)
-            ? pendingPayload.users
-            : Array.isArray(pendingPayload)
-              ? pendingPayload
-              : [];
-          setPending(pendingList);
-        }
-
-        const activeYearId = resolvedActiveYear?._id;
-        if (activeYearId) {
-          const [overviewRes, trendRes, gradesRes, areasRes] = await Promise.allSettled([
-            analyticsApi.getAdminInstitutionOverview(activeYearId),
-            analyticsApi.getAdminInstitutionTrend(activeYearId),
-            analyticsApi.getAdminByGrade(activeYearId),
-            analyticsApi.getAdminByArea(activeYearId),
-          ]);
-
-          if (overviewRes.status === 'fulfilled') {
-            const payload = overviewRes.value.data?.data ?? overviewRes.value.data;
-            setInstitutionOverview(payload?.summary || null);
-          }
-          if (trendRes.status === 'fulfilled') {
-            const payload = trendRes.value.data?.data ?? trendRes.value.data;
-            setInstitutionTrend(Array.isArray(payload?.periods) ? payload.periods : []);
-          }
-          if (gradesRes.status === 'fulfilled') {
-            const payload = gradesRes.value.data?.data ?? gradesRes.value.data;
-            setInstitutionGrades(Array.isArray(payload?.grades) ? payload.grades : []);
-          }
-          if (areasRes.status === 'fulfilled') {
-            const payload = areasRes.value.data?.data ?? areasRes.value.data;
-            setInstitutionAreas(Array.isArray(payload?.areas) ? payload.areas : []);
-          }
-        } else {
-          setInstitutionOverview(null);
-          setInstitutionTrend([]);
-          setInstitutionGrades([]);
-          setInstitutionAreas([]);
-        }
-      } catch {} finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, []);
 
   return (
     <div className="space-y-6">
@@ -213,9 +142,9 @@ const AdminDashboard = () => {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard title="Total Usuarios" value={stats?.total || 0} icon={Users} loading={loading} />
-        <StatCard title="Estudiantes" value={roleStats?.student || stats?.students || 0} icon={GraduationCap} loading={loading} />
-        <StatCard title="Docentes" value={roleStats?.teacher || stats?.teachers || 0} icon={UserCheck} loading={loading} />
-        <StatCard title="Pendientes" value={statusStats?.pending || stats?.pending || pending.length || 0} icon={Clock} loading={loading} />
+        <StatCard title="Estudiantes" value={roleStats?.student || 0} icon={GraduationCap} loading={loading} />
+        <StatCard title="Docentes" value={roleStats?.teacher || 0} icon={UserCheck} loading={loading} />
+        <StatCard title="Pendientes" value={statusStats?.pending || pending.length || 0} icon={Clock} loading={loading} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -283,15 +212,12 @@ const AdminDashboard = () => {
               </div>
             ) : pending.length > 0 ? (
               <div className="space-y-2">
-                {pending.slice(0, 5).map((u: any) => (
-                  <div key={u._id} className="flex items-center justify-between text-sm">
-                    <span>{u.email}</span>
+                {pending.map((user: any) => (
+                  <div key={user._id} className="flex items-center justify-between text-sm">
+                    <span>{user.email}</span>
                     <Badge variant="secondary">Pendiente</Badge>
                   </div>
                 ))}
-                {pending.length > 5 && (
-                  <p className="text-xs text-muted-foreground">y {pending.length - 5} más...</p>
-                )}
               </div>
             ) : (
               <p className="text-muted-foreground text-sm">No hay usuarios pendientes</p>
@@ -365,24 +291,47 @@ const AdminDashboard = () => {
   );
 };
 
-const TeacherDashboard = () => (
-  <div className="space-y-6">
-    <div>
-      <h1 className="text-2xl font-display font-bold">Dashboard</h1>
-      <p className="text-muted-foreground">Bienvenido a tu panel de docente</p>
-    </div>
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+const TeacherDashboard = () => {
+  const { data: years = [], isLoading: yearsLoading } = useSchoolYears();
+  const activeYear = useMemo(
+    () => years.find((year: any) => year?.is_active) || years[0] || null,
+    [years]
+  );
+  const { data: summary, isLoading: summaryLoading } = useTeacherDashboardSummary(activeYear?._id);
+  const loading = yearsLoading || (Boolean(activeYear?._id) && summaryLoading);
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-display font-bold">Dashboard</h1>
+        <p className="text-muted-foreground">Resumen de tu carga docente activa</p>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard title="Asignaciones" value={summary?.summary?.assignment_count || 0} icon={BookOpen} loading={loading} />
+        <StatCard title="Grupos" value={summary?.summary?.group_count || 0} icon={Users} loading={loading} />
+        <StatCard title="Estudiantes" value={summary?.summary?.student_count || 0} icon={GraduationCap} loading={loading} />
+        <StatCard title="Promedio" value={summary?.summary?.average?.toFixed?.(1) || '0.0'} icon={BarChart3} loading={loading} />
+      </div>
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Mis Grupos</CardTitle>
+          <CardTitle className="text-base">Año escolar</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground text-sm">Navega a "Mis Grupos" para ver tus grupos asignados.</p>
+          {loading ? (
+            <Skeleton className="h-6 w-40" />
+          ) : activeYear ? (
+            <div className="flex items-center gap-2">
+              <span className="font-medium">{activeYear.name || activeYear.year}</span>
+              <Badge variant="secondary">Activo</Badge>
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-sm">No hay año escolar activo</p>
+          )}
         </CardContent>
       </Card>
     </div>
-  </div>
-);
+  );
+};
 
 const StudentDashboard = () => (
   <div className="space-y-6">

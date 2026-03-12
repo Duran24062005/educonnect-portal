@@ -77,11 +77,18 @@ Objetivo:
 - mostrar resumen anual o por periodo
 - comparar desempeno por grado y area
 
+Integracion optimizada actual:
+
+- `dashboard` usa `analytics/admin/dashboard-summary`
+- `EvaluationStatsPage` reutiliza el mismo resumen agregado y solo mantiene aparte `evaluations/stats`
+- `schoolYears` debe venir de `useSchoolYears`
+
 ## Patrones del modulo
 
 - varios hooks admin usan React Query
 - varias tablas hacen normalizacion manual del payload
 - gran parte del negocio depende de contratos precisos del backend
+- dashboard y estadisticas ya no deben reconstruirse desde multiples requests independientes si existe endpoint agregado
 
 ## Riesgos conocidos
 

@@ -7,6 +7,7 @@
 - React Router v6
 - Zustand para autenticacion y estado UI pequeno
 - React Query para algunos flujos admin
+- React Query para cache compartido en dashboards, grupos y pantallas pesadas
 - Axios para integracion HTTP
 - Tailwind CSS + shadcn/ui + Radix UI
 - Sonner para notificaciones
@@ -15,7 +16,7 @@
 ## Punto de entrada
 
 - `src/main.tsx` monta la aplicacion.
-- `src/App.tsx` compone providers, inicializacion de sesion y mapa de rutas.
+- `src/App.tsx` compone providers, inicializacion de sesion, carga diferida de rutas y mapa de navegacion.
 
 ## Diagrama general
 
@@ -64,6 +65,11 @@ Responsabilidad:
 - impedir acceso por rol incorrecto
 - redirigir segun estado de cuenta o perfil
 
+Desde la optimizacion de rendimiento:
+
+- las pantallas pesadas se cargan con `lazy()` + `Suspense`
+- el objetivo es que dashboard, analytics, grupos, notas y actividades no entren al bundle inicial
+
 ### 2. Estado global
 
 El frontend evita un store global grande. Hoy el estado global real esta concentrado en:
@@ -86,6 +92,12 @@ Encima de ese cliente se organizan modulos:
 - `src/api/evaluations.ts`
 - `src/api/analytics.ts`
 - `src/api/students.ts`
+
+Sobre esa capa ahora existen hooks cacheados para datos de alto reuso:
+
+- `src/hooks/useSchoolYears.ts`
+- `src/hooks/useDashboardSummary.ts`
+- `src/hooks/useGroupDetailSummary.ts`
 
 ### 4. Presentacion
 
@@ -165,6 +177,7 @@ La navegacion lateral se define en `src/components/AppSidebar.tsx`.
 
 - El frontend esta organizado por dominios de negocio, no por tipo tecnico puro.
 - El estado de sesion es global; el estado de pantalla es local salvo casos especificos.
+- Los datos repetidos entre rutas deben ir a React Query antes de duplicar `useEffect`.
 - La capa API intenta encapsular endpoints, pero varias paginas aun normalizan payloads manualmente.
 - Algunas vistas todavia mezclan logica de integracion y presentacion en el mismo archivo. Eso debe asumirse al mantenerlas.
 
@@ -173,3 +186,4 @@ La navegacion lateral se define en `src/components/AppSidebar.tsx`.
 - Hay mezcla entre vistas totalmente conectadas a backend real y vistas con restos de datos mockeados.
 - El shape del backend no siempre es consistente entre modulos, por eso aparecen helpers como `unwrap`, `asArray` o `getPayload`.
 - Varias entidades tienen multiples IDs validos en el sistema (`User`, `Student`, `Teacher`), lo que obliga a documentar muy bien el contrato esperado por cada endpoint.
+- Aun existe un chunk vendor relevante, pero ya no se cargan todas las paginas privadas en el arranque.

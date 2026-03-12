@@ -18,4 +18,17 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return;
+          if (id.includes("recharts") || id.includes("lightweight-charts")) return "charts-vendor";
+          if (id.includes("@radix-ui")) return "ui-vendor";
+          if (id.includes("axios")) return "http-vendor";
+          return "vendor";
+        },
+      },
+    },
+  },
 }));

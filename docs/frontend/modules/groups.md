@@ -38,6 +38,12 @@ La capacidad no se decrementa en base de datos; se calcula por diferencia entre 
 - `users by role`
 - `academic areas`
 
+Integracion optimizada actual:
+
+- `GroupDetailPage` usa `GET /api/groups/:group_id/detail-summary`
+- el objetivo es cargar grupo, estudiantes, docentes, areas y opciones de docentes en una sola respuesta
+- despues de asignar docente o area, la vista invalida ese resumen y recarga una sola query
+
 ## Riesgo historico documentado
 
 Hubo inconsistencias entre `_id` de `User` y `_id` de `Student` o `Teacher`.

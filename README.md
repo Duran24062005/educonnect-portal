@@ -13,6 +13,7 @@ Frontend LMS para **EduConnect** construido con React + Vite + TypeScript, conec
 - React Router v6 (guards por autenticación/rol)
 - React Hook Form + Zod
 - Sonner (toasts)
+- React Query (cache compartido y refetch controlado)
 
 ## Requisitos
 
@@ -45,6 +46,12 @@ npm run dev
 npm run build
 npm run preview
 ```
+
+## Notas de rendimiento
+
+- Las pantallas privadas pesadas se cargan con `lazy loading`.
+- Dashboard, grupos y estadisticas usan endpoints agregados y hooks con React Query para reducir requests repetidas.
+- El build esta dividido en chunks de paginas y vendors para evitar que todo el panel entre al bundle inicial.
 
 ## Documentacion interna
 

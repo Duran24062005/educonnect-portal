@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import DashboardLayout from '@/layouts/DashboardLayout';
-import { academicApi } from '@/api/academic';
-import { analyticsApi, type TeacherGroupAnalytics, type TeacherStudentDetail } from '@/api/analytics';
+import { analyticsApi, type TeacherStudentDetail } from '@/api/analytics';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -12,63 +12,17 @@ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { BarChart3, Eye, FileText, Users } from 'lucide-react';
 import LightweightCategoryChart from '@/components/charts/LightweightCategoryChart';
+import { useSchoolYears } from '@/hooks/useSchoolYears';
+import { useTeacherDashboardSummary } from '@/hooks/useDashboardSummary';
 
 const PASSING_SCORE = 6;
 
 const getPayload = (response: any) => response?.data?.data ?? response?.data;
-
-const asArray = (response: any, key?: string) => {
-  const payload = getPayload(response);
-  if (key && Array.isArray(payload?.[key])) return payload[key];
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.items)) return payload.items;
-  if (Array.isArray(payload?.schoolYears)) return payload.schoolYears;
-  if (Array.isArray(payload?.groups)) return payload.groups;
-  if (Array.isArray(payload?.students)) return payload.students;
-  if (Array.isArray(payload?.periods)) return payload.periods;
-  return [];
-};
-
 const assignmentKey = (groupId?: string, areaId?: string) => `${groupId || ''}:${areaId || ''}`;
-
-const toTeacherMetric = (
-  assignment: any,
-  performancePayload: any,
-  trendPayload: any
-): TeacherGroupAnalytics => {
-  const summary = performancePayload?.summary || {};
-  const students = Array.isArray(performancePayload?.students) ? performancePayload.students : [];
-  const periods = Array.isArray(trendPayload?.periods) ? trendPayload.periods : [];
-
-  return {
-    group_id: assignment?.group_id || '',
-    group_name: assignment?.group_name || 'Grupo',
-    grade_name: assignment?.grade_name || 'Grado',
-    area_id: assignment?.area_id || '',
-    area_name: assignment?.area_name || 'Area',
-    student_count: Number(summary?.student_count ?? students.length ?? 0),
-    average: Number(summary?.average ?? 0),
-    passed: Number(summary?.passed ?? 0),
-    failed: Number(summary?.failed ?? 0),
-    periods: periods.map((period: any) => ({
-      period_name: period?.period_name || 'Periodo',
-      average: Number(period?.average ?? 0),
-      passed: Number(period?.passed ?? 0),
-      failed: Number(period?.failed ?? 0),
-    })),
-    students: students.map((student: any) => ({
-      student_id: student?.student_id || '',
-      student_name: student?.student_name || 'Sin nombre',
-      student_email: student?.student_email || null,
-      average: Number(student?.average ?? 0),
-      status: student?.status === 'passed' ? 'passed' : 'failed',
-    })),
-  };
-};
 
 const normalizeStudentDetail = (
   payload: any,
-  fallbackStudent: TeacherGroupAnalytics['students'][number] | null,
+  fallbackStudent: any,
   fallbackAreaName: string
 ): TeacherStudentDetail => ({
   student: {
@@ -90,148 +44,96 @@ const normalizeStudentDetail = (
 });
 
 const MyGroupsPage = () => {
-  const [years, setYears] = useState<any[]>([]);
   const [selectedYearId, setSelectedYearId] = useState('');
-  const [groups, setGroups] = useState<TeacherGroupAnalytics[]>([]);
   const [selectedAssignmentKey, setSelectedAssignmentKey] = useState('');
   const [selectedStudentId, setSelectedStudentId] = useState('');
-  const [selectedStudentDetail, setSelectedStudentDetail] = useState<TeacherStudentDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [detailLoading, setDetailLoading] = useState(false);
   const navigate = useNavigate();
+  const { data: years = [], isLoading: yearsLoading } = useSchoolYears();
 
   useEffect(() => {
-    const loadYears = async () => {
-      try {
-        const response = await academicApi.getSchoolYears();
-        const loadedYears = asArray(response, 'schoolYears');
-        setYears(loadedYears);
+    if (selectedYearId || years.length === 0) return;
+    const activeYear = years.find((year: any) => year?.is_active) || years[0];
+    if (activeYear?._id) {
+      setSelectedYearId(activeYear._id);
+    }
+  }, [selectedYearId, years]);
 
-        const activeYear = loadedYears.find((year: any) => year?.is_active) || loadedYears[0];
-        if (activeYear?._id) {
-          setSelectedYearId(activeYear._id);
-        }
-      } catch {
-        toast.error('No se pudieron cargar los anos escolares');
-      }
-    };
-
-    void loadYears();
-  }, []);
+  const {
+    data: dashboardSummary,
+    isLoading: groupsLoading,
+    error: groupsError,
+  } = useTeacherDashboardSummary(selectedYearId);
 
   useEffect(() => {
-    const loadTeacherMetrics = async () => {
-      if (!selectedYearId) return;
+    if (groupsError) {
+      toast.error('No se pudieron cargar las metricas del docente');
+    }
+  }, [groupsError]);
 
-      setLoading(true);
-      try {
-        const groupsResponse = await analyticsApi.getTeacherGroups(selectedYearId);
-        const assignments = asArray(groupsResponse, 'groups');
+  const groups = dashboardSummary?.groups || [];
+  const loading = yearsLoading || (Boolean(selectedYearId) && groupsLoading);
 
-        if (assignments.length === 0) {
-          setGroups([]);
-          setSelectedAssignmentKey('');
-          setSelectedStudentId('');
-          setSelectedStudentDetail(null);
-          return;
-        }
+  useEffect(() => {
+    if (!groups.length) {
+      setSelectedAssignmentKey('');
+      setSelectedStudentId('');
+      return;
+    }
 
-        const [performanceResponses, trendResponses] = await Promise.all([
-          Promise.allSettled(
-            assignments.map((assignment: any) =>
-              analyticsApi.getTeacherGroupPerformance(selectedYearId, assignment.group_id, assignment.area_id)
-            )
-          ),
-          Promise.allSettled(
-            assignments.map((assignment: any) =>
-              analyticsApi.getTeacherGroupTrend(selectedYearId, assignment.group_id, assignment.area_id)
-            )
-          ),
-        ]);
-
-        const nextGroups = assignments.map((assignment: any, index: number) => {
-          const performancePayload =
-            performanceResponses[index]?.status === 'fulfilled'
-              ? getPayload(performanceResponses[index].value)
-              : null;
-          const trendPayload =
-            trendResponses[index]?.status === 'fulfilled'
-              ? getPayload(trendResponses[index].value)
-              : null;
-
-          return toTeacherMetric(assignment, performancePayload, trendPayload);
-        });
-
-        setGroups(nextGroups);
-        setSelectedAssignmentKey((current) => {
-          if (current && nextGroups.some((group) => assignmentKey(group.group_id, group.area_id) === current)) {
-            return current;
-          }
-          return assignmentKey(nextGroups[0]?.group_id, nextGroups[0]?.area_id);
-        });
-      } catch {
-        setGroups([]);
-        setSelectedAssignmentKey('');
-        setSelectedStudentId('');
-        setSelectedStudentDetail(null);
-        toast.error('No se pudieron cargar las metricas del docente');
-      } finally {
-        setLoading(false);
+    setSelectedAssignmentKey((current) => {
+      if (current && groups.some((group: any) => assignmentKey(group.group_id, group.area_id) === current)) {
+        return current;
       }
-    };
-
-    void loadTeacherMetrics();
-  }, [selectedYearId]);
+      return assignmentKey(groups[0]?.group_id, groups[0]?.area_id);
+    });
+  }, [groups]);
 
   const activeGroup = useMemo(
-    () => groups.find((group) => assignmentKey(group.group_id, group.area_id) === selectedAssignmentKey) ?? groups[0] ?? null,
+    () => groups.find((group: any) => assignmentKey(group.group_id, group.area_id) === selectedAssignmentKey) ?? groups[0] ?? null,
     [groups, selectedAssignmentKey]
-  );
-
-  const activeStudent = useMemo(
-    () => activeGroup?.students.find((student) => student.student_id === selectedStudentId) ?? activeGroup?.students[0] ?? null,
-    [activeGroup, selectedStudentId]
-  );
-
-  const selectableStudents = useMemo(
-    () => (activeGroup?.students || []).filter((student) => Boolean(student.student_id)),
-    [activeGroup]
   );
 
   useEffect(() => {
     setSelectedStudentId((current) => {
-      if (current && activeGroup?.students.some((student) => student.student_id === current)) {
+      if (current && activeGroup?.students.some((student: any) => student.student_id === current)) {
         return current;
       }
-      return activeGroup?.students.find((student) => student.student_id)?.student_id || '';
+      return activeGroup?.students.find((student: any) => student.student_id)?.student_id || '';
     });
   }, [activeGroup]);
 
+  const activeStudent = useMemo(
+    () => activeGroup?.students.find((student: any) => student.student_id === selectedStudentId) ?? activeGroup?.students[0] ?? null,
+    [activeGroup, selectedStudentId]
+  );
+
+  const selectableStudents = useMemo(
+    () => (activeGroup?.students || []).filter((student: any) => Boolean(student.student_id)),
+    [activeGroup]
+  );
+
+  const {
+    data: selectedStudentDetail,
+    isLoading: detailLoading,
+    error: detailError,
+  } = useQuery({
+    queryKey: ['teacher-student-detail', selectedYearId, activeGroup?.area_id, selectedStudentId],
+    queryFn: async () => {
+      if (!selectedYearId || !activeGroup?.area_id || !selectedStudentId) return null;
+      const response = await analyticsApi.getTeacherStudentDetail(selectedYearId, selectedStudentId, activeGroup.area_id);
+      return normalizeStudentDetail(getPayload(response), activeStudent, activeGroup.area_name);
+    },
+    enabled: !loading && Boolean(selectedYearId && activeGroup?.area_id && selectedStudentId),
+    staleTime: 30_000,
+  });
+
   useEffect(() => {
-    const loadStudentDetail = async () => {
-      if (loading || !selectedYearId || !activeGroup?.area_id || !selectedStudentId) {
-        setSelectedStudentDetail(null);
-        setDetailLoading(false);
-        return;
-      }
+    if (detailError) {
+      toast.error('No se pudo cargar el detalle del estudiante');
+    }
+  }, [detailError]);
 
-      setDetailLoading(true);
-      try {
-        const response = await analyticsApi.getTeacherStudentDetail(selectedYearId, selectedStudentId, activeGroup.area_id);
-        const payload = getPayload(response);
-        setSelectedStudentDetail(normalizeStudentDetail(payload, activeStudent, activeGroup.area_name));
-      } catch {
-        setSelectedStudentDetail(null);
-        toast.error('No se pudo cargar el detalle del estudiante');
-      } finally {
-        setDetailLoading(false);
-      }
-    };
-
-    void loadStudentDetail();
-  }, [activeGroup?.area_id, activeGroup?.area_name, activeStudent, loading, selectedStudentId, selectedYearId]);
-
-  const periodCategories = activeGroup?.periods.map((period) => period.period_name) ?? [];
+  const periodCategories = activeGroup?.periods.map((period: any) => period.period_name) ?? [];
   const periodSeries = activeGroup
     ? [
         {
@@ -239,19 +141,19 @@ const MyGroupsPage = () => {
           label: `${activeGroup.area_name} promedio`,
           type: 'area' as const,
           color: '#0f766e',
-          values: activeGroup.periods.map((period) => period.average),
+          values: activeGroup.periods.map((period: any) => period.average),
         },
         {
           id: 'teacher-failed',
           label: 'Estudiantes en riesgo',
           type: 'line' as const,
           color: '#dc2626',
-          values: activeGroup.periods.map((period) => period.failed),
+          values: activeGroup.periods.map((period: any) => period.failed),
         },
       ]
     : [];
 
-  const studentCategories = activeGroup?.students.map((student) => student.student_name) ?? [];
+  const studentCategories = activeGroup?.students.map((student: any) => student.student_name) ?? [];
   const studentSeries = activeGroup
     ? [
         {
@@ -259,7 +161,7 @@ const MyGroupsPage = () => {
           label: 'Promedio estudiante',
           type: 'histogram' as const,
           color: '#2563eb',
-          values: activeGroup.students.map((student) => student.average),
+          values: activeGroup.students.map((student: any) => student.average),
         },
       ]
     : [];
@@ -301,7 +203,7 @@ const MyGroupsPage = () => {
               <SelectValue placeholder="Selecciona un ano escolar" />
             </SelectTrigger>
             <SelectContent>
-              {years.map((year) => (
+              {years.map((year: any) => (
                 <SelectItem key={year._id} value={year._id}>
                   {year.name || year.year}
                 </SelectItem>
@@ -328,7 +230,7 @@ const MyGroupsPage = () => {
           </Card>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {groups.map((group) => (
+            {groups.map((group: any) => (
               <Card key={assignmentKey(group.group_id, group.area_id)} className="hover:shadow-md transition-shadow">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base flex items-center justify-between">
@@ -400,7 +302,7 @@ const MyGroupsPage = () => {
                 <SelectValue placeholder="Selecciona grupo y area" />
               </SelectTrigger>
               <SelectContent>
-                {groups.map((group) => (
+                {groups.map((group: any) => (
                   <SelectItem key={assignmentKey(group.group_id, group.area_id)} value={assignmentKey(group.group_id, group.area_id)}>
                     {group.group_name} · {group.area_name}
                   </SelectItem>
@@ -474,7 +376,7 @@ const MyGroupsPage = () => {
                           </TableCell>
                         </TableRow>
                       ) : (
-                        activeGroup.students.map((student) => (
+                        activeGroup.students.map((student: any) => (
                           <TableRow
                             key={student.student_id || `${student.student_name}-${student.average}`}
                             className={student.student_id === selectedStudentId ? 'bg-muted/40' : ''}
@@ -521,7 +423,7 @@ const MyGroupsPage = () => {
                 <SelectValue placeholder="Selecciona un estudiante" />
               </SelectTrigger>
               <SelectContent>
-                {selectableStudents.map((student) => (
+                {selectableStudents.map((student: any) => (
                   <SelectItem key={student.student_id} value={student.student_id || ''}>
                     {student.student_name}
                   </SelectItem>

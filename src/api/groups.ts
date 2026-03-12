@@ -27,6 +27,7 @@ export type EnrollmentStatus = 'active' | 'transferred' | 'retired';
 export const groupsApi = {
   getBySchoolYear: (yearId: string) => api.get(`/api/groups/school-year/${assertObjectId(yearId, 'school_year_id')}`),
   get: (id: string) => api.get(`/api/groups/${assertObjectId(id, 'id')}`),
+  getDetailSummary: (groupId: string) => api.get(`/api/groups/${assertObjectId(groupId, 'group_id')}/detail-summary`),
   create: (data: CreateGroupPayload) => api.post('/api/groups', data),
   update: (id: string, data: any) => api.put(`/api/groups/${assertObjectId(id, 'id')}`, data),
   delete: (id: string) => api.delete(`/api/groups/${assertObjectId(id, 'id')}`),

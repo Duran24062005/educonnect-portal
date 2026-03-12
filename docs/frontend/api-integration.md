@@ -65,6 +65,22 @@ Estas funciones existen porque el backend a veces responde como:
 
 Cuando un modulo backend se estabilice, mover la normalizacion al modulo `src/api/*` correspondiente y no repetirla en cada pagina.
 
+## Capa de cache y carga
+
+Desde la optimizacion de rendimiento de marzo de 2026, el portal usa React Query tambien para vistas pesadas de dashboard y grupos.
+
+Hooks base introducidos:
+
+- `src/hooks/useSchoolYears.ts`
+- `src/hooks/useDashboardSummary.ts`
+- `src/hooks/useGroupDetailSummary.ts`
+
+Reglas actuales:
+
+- datos compartidos de sesion o navegacion deben salir de hooks cacheados
+- las paginas no deben rehacer fetch manual de `schoolYears` si ya existe hook
+- cambios de filtro deben reutilizar `placeholderData` para no vaciar la UI mientras llega la siguiente respuesta
+
 ## Validacion de ObjectId
 
 Archivo util: `src/lib/object-id.ts`
@@ -101,6 +117,13 @@ Regla:
 - endpoints reales ya conectados
 - restos de datos mockeados en algunas interfaces o helpers
 
+Endpoints agregados nuevos para performance:
+
+- `GET /api/analytics/admin/dashboard-summary`
+- `GET /api/analytics/teacher/me/dashboard-summary`
+
+Estos endpoints se usan para evitar armar dashboards desde 4 a 8 requests independientes.
+
 Antes de agregar una nueva grafica:
 
 1. revisar el PRD correspondiente
@@ -119,6 +142,6 @@ Antes de agregar una nueva grafica:
 
 ## Deuda tecnica conocida
 
-- No todos los modulos usan React Query; varios hacen fetch manual en `useEffect`.
+- No todos los modulos usan React Query; aun quedan pantallas con fetch manual en `useEffect`.
 - Hay repeticiones de utilidades de normalizacion entre paginas.
-- Algunas paginas de docente todavia cargan datos mas amplios de lo necesario y luego filtran localmente.
+- Algunas paginas todavia combinan datos resumidos y detalle fino en la misma carga inicial.
