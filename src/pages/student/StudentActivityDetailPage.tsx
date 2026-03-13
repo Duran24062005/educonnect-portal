@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { activitiesApi, type Activity } from '@/api/activities';
 import DashboardLayout from '@/layouts/DashboardLayout';
@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { getMediaUrl } from '@/lib/media';
 import { isValidObjectId } from '@/lib/object-id';
 import { toast } from 'sonner';
-import { ArrowLeft, ExternalLink, Loader2 } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Loader2, X } from 'lucide-react';
 
 const formatDateTime = (value?: string | null) => {
   if (!value) return 'N/A';
@@ -36,6 +36,14 @@ const StudentActivityDetailPage = () => {
   const [activity, setActivity] = useState<Activity | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [linkUrl, setLinkUrl] = useState('');
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const clearSelectedFile = () => {
+    setSelectedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   const load = async () => {
     if (!activityId || !isValidObjectId(activityId)) {
@@ -98,7 +106,7 @@ const StudentActivityDetailPage = () => {
         student_state: result.activity.student_state,
         submission: result.submission,
       });
-      setSelectedFile(null);
+      clearSelectedFile();
       setLinkUrl('');
       toast.success('Entrega enviada correctamente');
     } catch (error: any) {
@@ -241,11 +249,24 @@ const StudentActivityDetailPage = () => {
                       <div className="space-y-2">
                         <Label>Subir o reemplazar archivo</Label>
                         <Input
+                          ref={fileInputRef}
                           type="file"
                           accept={acceptValue}
                           disabled={!canUpload}
                           onChange={(event) => setSelectedFile(event.target.files?.[0] || null)}
                         />
+                        {selectedFile && (
+                          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-muted/30 px-3 py-2 text-sm">
+                            <div>
+                              <p className="font-medium">Archivo en cola</p>
+                              <p className="text-muted-foreground">{selectedFile.name}</p>
+                            </div>
+                            <Button type="button" variant="outline" size="sm" onClick={clearSelectedFile}>
+                              <X className="h-4 w-4" />
+                              Quitar archivo
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     )}
                     {allowsLink && (
