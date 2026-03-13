@@ -42,6 +42,7 @@ const MyGradesPage = lazy(() => import('./pages/student/MyGradesPage'));
 const MyResultsPage = lazy(() => import('./pages/student/MyResultsPage'));
 const StudentActivityDetailPage = lazy(() => import('./pages/student/StudentActivityDetailPage'));
 const EvaluationStatsPage = lazy(() => import('./pages/EvaluationStatsPage'));
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -94,6 +95,7 @@ const App = () => (
               {/* Protected routes */}
               <Route path="/dashboard" element={<ProfileCompleteGuard><DashboardPage /></ProfileCompleteGuard>} />
               <Route path="/profile" element={<ProfileCompleteGuard><ProfilePage /></ProfileCompleteGuard>} />
+              <Route path="/notifications" element={<ProfileCompleteGuard><NotificationsPage /></ProfileCompleteGuard>} />
 
               {/* Admin routes */}
               <Route path="/users" element={<ProfileCompleteGuard><RoleRoute roles={['admin']}><UsersPage /></RoleRoute></ProfileCompleteGuard>} />

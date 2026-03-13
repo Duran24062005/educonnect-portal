@@ -13,6 +13,7 @@ import {
   ArrowRightLeft,
   GitMerge,
   FileText,
+  Bell,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
@@ -33,6 +34,7 @@ import {
 
 const adminItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
+  { title: 'Notificaciones', url: '/notifications', icon: Bell },
   { title: 'Usuarios', url: '/users', icon: Users },
   { title: 'Pendientes', url: '/users/pending', icon: UserCheck },
 ];
@@ -54,12 +56,14 @@ const groupItems = [
 
 const teacherItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
+  { title: 'Notificaciones', url: '/notifications', icon: Bell },
   { title: 'Mis Grupos', url: '/my-groups', icon: School },
   { title: 'Resultados', url: '/period-results', icon: BarChart3 },
 ];
 
 const studentItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
+  { title: 'Notificaciones', url: '/notifications', icon: Bell },
   { title: 'Mis Actividades', url: '/my-activities', icon: FileText },
   { title: 'Mis Calificaciones', url: '/my-grades', icon: ClipboardList },
   { title: 'Mis Resultados', url: '/my-results', icon: BarChart3 },

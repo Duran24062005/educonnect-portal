@@ -38,6 +38,8 @@ La integracion esta separada por dominio:
 - `groups.ts`
 - `evaluations.ts`
 - `analytics.ts`
+- `activities.ts`
+- `notifications.ts`
 
 Cada modulo debe:
 
@@ -74,6 +76,12 @@ Hooks base introducidos:
 - `src/hooks/useSchoolYears.ts`
 - `src/hooks/useDashboardSummary.ts`
 - `src/hooks/useGroupDetailSummary.ts`
+
+Caso adicional actual:
+
+- notificaciones usa React Query para listado, unread count y acciones de lectura
+- la UI invalida queries cuando el usuario marca una o todas como leidas
+- esta version no abre canal en tiempo real; depende de refetch y navegacion
 
 Reglas actuales:
 

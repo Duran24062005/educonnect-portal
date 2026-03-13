@@ -18,6 +18,16 @@ Esta carpeta documenta como esta construido el frontend de EduConnect hoy, con f
 - [state-management.md](./state-management.md): uso de Zustand, React Query y estado local.
 - [ui-patterns.md](./ui-patterns.md): layouts, componentes base y patrones de UI.
 
+## Nota actual
+
+El portal ya incluye bandeja de notificaciones y formularios de anuncios para `admin` y `teacher`.
+
+Esta primera version:
+
+- consume endpoints REST de notificaciones
+- usa React Query para refresco y sincronizacion local
+- no implementa WebSockets ni push en tiempo real
+
 ## Modulos
 
 - [modules/admin.md](./modules/admin.md)

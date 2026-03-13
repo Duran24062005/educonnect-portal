@@ -7,6 +7,7 @@ import { getMediaUrl } from '@/lib/media';
 import { getDashboardLabel, getRoleLabel } from '@/lib/auth';
 import {
   DropdownMenu,
+  DropdownMenuLabel,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
@@ -14,10 +15,32 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { LogOut, User, Bell } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { notificationsApi, type NotificationItem } from '@/api/notifications';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+
+const getNotificationDestination = (notification: NotificationItem, role?: string | null) => {
+  const normalizedRole = String(role || '').toLowerCase();
+  if (notification.type === 'activity_created' && normalizedRole === 'student' && notification.source_id) {
+    return `/my-activities/${notification.source_id}`;
+  }
+
+  if (notification.type === 'activity_submitted' && normalizedRole === 'teacher') {
+    const groupId = notification.metadata?.group_id;
+    const areaId = notification.metadata?.area_id;
+    if (groupId && areaId) {
+      return `/teacher/activities/${groupId}/${areaId}`;
+    }
+  }
+
+  return '/notifications';
+};
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const { user, person, logout } = useAuthStore();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const displayName = person
     ? `${person.first_name} ${person.last_name}`
@@ -28,9 +51,52 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     : user?.email?.[0]?.toUpperCase() || 'U';
   const profilePhotoUrl = getMediaUrl(person?.profile_photo_url || person?.profile_photo);
 
+  const unreadCountQuery = useQuery({
+    queryKey: ['notifications', 'unread-count'],
+    queryFn: async () => {
+      const result = await notificationsApi.unreadCount();
+      return result.unread_count;
+    },
+  });
+
+  const recentNotificationsQuery = useQuery({
+    queryKey: ['notifications', 'recent'],
+    queryFn: async () => {
+      const result = await notificationsApi.list({ limit: 5 });
+      return result.notifications;
+    },
+  });
+
+  const invalidateNotifications = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+    ]);
+  };
+
+  const markAsReadMutation = useMutation({
+    mutationFn: (id: string) => notificationsApi.markAsRead(id),
+    onSuccess: async () => {
+      await invalidateNotifications();
+    },
+  });
+
+  const markAllMutation = useMutation({
+    mutationFn: () => notificationsApi.markAllAsRead(),
+    onSuccess: async () => {
+      await invalidateNotifications();
+    },
+  });
+
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const handleOpenNotification = async (notification: NotificationItem) => {
+    if (!notification.is_read) {
+      await markAsReadMutation.mutateAsync(notification.id);
+    }
+    navigate(getNotificationDestination(notification, user?.role));
   };
 
   return (
@@ -49,9 +115,59 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             </div>
 
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" className="text-muted-foreground">
-                <Bell className="w-5 h-5" />
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="relative text-muted-foreground">
+                    <Bell className="w-5 h-5" />
+                    {(unreadCountQuery.data ?? 0) > 0 && (
+                      <span className="absolute -right-1 -top-1 flex min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
+                        {unreadCountQuery.data}
+                      </span>
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-[360px] p-0">
+                  <div className="flex items-center justify-between px-3 py-2">
+                    <DropdownMenuLabel className="px-0 py-0">Notificaciones</DropdownMenuLabel>
+                    {(unreadCountQuery.data ?? 0) > 0 && (
+                      <Badge variant="secondary">{unreadCountQuery.data} nuevas</Badge>
+                    )}
+                  </div>
+                  <DropdownMenuSeparator />
+                  <ScrollArea className="max-h-[320px]">
+                    <div className="p-1">
+                      {(recentNotificationsQuery.data ?? []).length === 0 ? (
+                        <div className="px-3 py-6 text-sm text-muted-foreground">
+                          No tienes notificaciones todavía.
+                        </div>
+                      ) : (
+                        recentNotificationsQuery.data?.map((notification) => (
+                          <DropdownMenuItem
+                            key={notification.id}
+                            className="flex cursor-pointer flex-col items-start gap-1 rounded-md px-3 py-3"
+                            onClick={() => handleOpenNotification(notification)}
+                          >
+                            <div className="flex w-full items-center justify-between gap-2">
+                              <span className="font-medium">{notification.title}</span>
+                              {!notification.is_read && <Badge variant="secondary">Nueva</Badge>}
+                            </div>
+                            <span className="line-clamp-2 text-xs text-muted-foreground">{notification.message}</span>
+                          </DropdownMenuItem>
+                        ))
+                      )}
+                    </div>
+                  </ScrollArea>
+                  <DropdownMenuSeparator />
+                  <div className="flex items-center justify-between gap-2 p-2">
+                    <Button variant="ghost" size="sm" onClick={() => markAllMutation.mutate()} disabled={markAllMutation.isPending}>
+                      Marcar todas
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => navigate('/notifications')}>
+                      Ver todas
+                    </Button>
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

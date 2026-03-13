@@ -134,6 +134,7 @@ Privado compartido:
 
 - `/dashboard`
 - `/profile`
+- `/notifications`
 
 Admin:
 
@@ -210,6 +211,7 @@ Modulos API actuales:
 - `evaluations`
 - `analytics`
 - `activities`
+- `notifications`
 
 ## Performance y carga
 
@@ -219,6 +221,7 @@ Optimizaciones ya incorporadas:
 - React Query para cache compartido
 - hooks dedicados para school years, dashboard summaries y group detail summary
 - build dividido en vendors y paginas
+- notificaciones in-app via REST con refetch; esta v1 no usa WebSockets
 
 Ejemplos de hooks relevantes:
 
