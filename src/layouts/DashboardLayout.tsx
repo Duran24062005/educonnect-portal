@@ -19,6 +19,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { notificationsApi, type NotificationItem } from '@/api/notifications';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 const getNotificationDestination = (notification: NotificationItem, role?: string | null) => {
   const normalizedRole = String(role || '').toLowerCase();
@@ -115,6 +116,8 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             </div>
 
             <div className="flex items-center gap-3">
+              <ThemeToggle />
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="relative text-muted-foreground">

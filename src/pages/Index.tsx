@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 const stats = [
   { value: '1,280', label: 'Estudiantes activos' },
@@ -42,10 +43,10 @@ const modules = [
 const Index = () => {
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-40 border-b border-border/70 bg-black/85 backdrop-blur">
+      <header className="sticky top-0 z-40 border-b border-border/70 bg-background/90 backdrop-blur">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-white/10 backdrop-blur flex items-center justify-center border border-white/20 overflow-hidden">
+            <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg border border-border/70 bg-card/80 backdrop-blur">
               <img
                 src="https://edu-connect-beta.vercel.app/img/EduConectLogo.png"
                 alt="Logo EduConnect"
@@ -53,32 +54,35 @@ const Index = () => {
               />
             </div>
             <div>
-              <p className="font-display font-bold leading-none text-white">EduConnect</p>
-              <p className="text-xs text-white/70 mt-1 leading-none">Plataforma institucional educativa</p>
+              <p className="font-display font-bold leading-none text-foreground">EduConnect</p>
+              <p className="mt-1 text-xs leading-none text-muted-foreground">Plataforma institucional educativa</p>
             </div>
           </div>
 
-          <Button asChild className="bg-blue-600 text-white hover:bg-blue-500 font-semibold">
-            <Link to="/login">Iniciar sesión</Link>
-          </Button>
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <Button asChild className="bg-blue-600 text-white hover:bg-blue-500 font-semibold">
+              <Link to="/login">Iniciar sesión</Link>
+            </Button>
+          </div>
         </div>
       </header>
 
       <main>
-        <section className="relative overflow-hidden bg-black text-white">
+        <section className="relative overflow-hidden border-b border-border bg-[linear-gradient(180deg,hsl(var(--background)),hsl(var(--muted))/0.7)] text-foreground">
           <img
             src="/auth_image.avif"
             alt="Comunidad educativa"
-            className="absolute inset-0 w-full h-full object-cover opacity-25"
+            className="absolute inset-0 h-full w-full object-cover opacity-10 dark:opacity-20"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-black via-slate-950/95 to-emerald-950/80" />
-          <div className="absolute -left-20 -top-20 w-96 h-96 rotate-45 bg-white/5" />
-          <div className="absolute right-24 top-10 w-72 h-72 rotate-45 bg-white/5" />
-          <div className="absolute right-0 bottom-0 w-[26rem] h-[26rem] rotate-45 bg-white/5" />
+          <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.9),rgba(219,234,254,0.88),rgba(236,253,245,0.78))] dark:bg-[linear-gradient(120deg,rgba(2,6,23,0.92),rgba(15,23,42,0.94),rgba(6,78,59,0.7))]" />
+          <div className="absolute -left-20 -top-20 h-96 w-96 rotate-45 bg-primary/10 dark:bg-white/5" />
+          <div className="absolute right-24 top-10 h-72 w-72 rotate-45 bg-emerald-500/10 dark:bg-white/5" />
+          <div className="absolute bottom-0 right-0 h-[26rem] w-[26rem] rotate-45 bg-blue-500/10 dark:bg-white/5" />
 
           <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 lg:py-24 grid lg:grid-cols-2 gap-10 items-center">
             <div className="space-y-6">
-              <p className="inline-flex items-center gap-2 rounded-full bg-white/15 border border-white/25 px-3 py-1 text-sm text-white/90">
+              <p className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-sm text-primary dark:border-white/15 dark:bg-white/10 dark:text-white/90">
                 <Sparkles className="w-4 h-4" />
                 Presencia digital del instituto
               </p>
@@ -87,7 +91,7 @@ const Index = () => {
                 Un portal académico centrado en cada usuario
               </h1>
 
-              <p className="text-lg md:text-2xl text-white/90 max-w-2xl leading-relaxed">
+              <p className="max-w-2xl text-lg leading-relaxed text-muted-foreground md:text-2xl dark:text-white/90">
                 Estudiantes, docentes y familias acceden a su información en un solo lugar,
                 con una experiencia clara, institucional y segura.
               </p>
@@ -106,19 +110,19 @@ const Index = () => {
             </div>
 
             <div className="hidden lg:block">
-              <div className="rounded-2xl border border-white/20 bg-black/40 backdrop-blur-md p-4 shadow-2xl">
+              <div className="rounded-2xl border border-border/70 bg-card/80 p-4 shadow-2xl backdrop-blur-md">
                 <img
                   src="/auth_image.avif"
                   alt="Ambiente institucional"
                   className="w-full h-[300px] object-cover rounded-xl"
                 />
                 <div className="grid grid-cols-2 gap-3 mt-4">
-                  <div className="rounded-lg bg-black/45 border border-white/20 p-3">
-                    <p className="text-xs text-white/75">Estado académico</p>
+                  <div className="rounded-lg border border-border/70 bg-background/70 p-3 dark:bg-black/45">
+                    <p className="text-xs text-muted-foreground dark:text-white/75">Estado académico</p>
                     <p className="font-semibold">Seguimiento por periodos</p>
                   </div>
-                  <div className="rounded-lg bg-black/45 border border-white/20 p-3">
-                    <p className="text-xs text-white/75">Comunicación</p>
+                  <div className="rounded-lg border border-border/70 bg-background/70 p-3 dark:bg-black/45">
+                    <p className="text-xs text-muted-foreground dark:text-white/75">Comunicación</p>
                     <p className="font-semibold">Canal directo con docentes</p>
                   </div>
                 </div>
@@ -197,7 +201,7 @@ const Index = () => {
         </section>
       </main>
 
-      <footer className="bg-black text-white/80 border-t border-border">
+      <footer className="border-t border-border bg-card text-muted-foreground">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between text-sm">
           <span>© 2026 EduConnect. Portal institucional.</span>
           <span className="inline-flex items-center gap-2"><UserRound className="w-4 h-4" /> Soporte: secretaria@educonnect.edu.co</span>

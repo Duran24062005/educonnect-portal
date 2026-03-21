@@ -1,20 +1,20 @@
 import { GraduationCap } from 'lucide-react';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 const AuthLayout = ({ children }: { children: React.ReactNode }) => {
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen bg-background text-foreground lg:grid lg:grid-cols-[minmax(0,760px)_1fr]">
       {/* Left branding panel */}
       <div
-        className="hidden lg:flex lg:w-[600px] xl:w-[760px] flex-col justify-between p-10 relative overflow-hidden bg-cover bg-center bg-no-repeat
-        rounded-tr-3xl"
+        className="relative hidden overflow-hidden rounded-r-[2rem] bg-cover bg-center bg-no-repeat p-10 lg:flex lg:flex-col lg:justify-between"
         style={{ backgroundImage: "url('/auth_image.avif')" }}
       >
-        <div className="absolute inset-0 bg-primary/75" />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/20 to-black/40" />
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute -top-20 -left-20 w-96 h-96 rounded-full bg-primary-foreground/20" />
-          <div className="absolute bottom-10 right-10 w-72 h-72 rounded-full bg-primary-foreground/10" />
-          <div className="absolute top-1/2 left-1/3 w-48 h-48 rounded-full bg-primary-foreground/15" />
+        <div className="absolute inset-0 bg-primary/70 dark:bg-primary/78" />
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/10 via-slate-950/30 to-slate-950/55 dark:from-slate-950/5 dark:via-slate-950/20 dark:to-slate-950/45" />
+        <div className="absolute inset-0 opacity-20 dark:opacity-10">
+          <div className="absolute -left-20 -top-20 h-96 w-96 rounded-full bg-primary-foreground/25" />
+          <div className="absolute bottom-10 right-10 h-72 w-72 rounded-full bg-primary-foreground/10" />
+          <div className="absolute left-1/3 top-1/2 h-48 w-48 rounded-full bg-primary-foreground/15" />
         </div>
         <div className="relative z-10">
           <a href="/">
@@ -44,7 +44,10 @@ const AuthLayout = ({ children }: { children: React.ReactNode }) => {
       </div>
 
       {/* Right form panel */}
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-10">
+      <div className="relative flex items-center justify-center p-6 sm:p-10">
+        <div className="absolute right-6 top-6">
+          <ThemeToggle />
+        </div>
         <div className="w-full max-w-md">
           <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
             <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">

@@ -121,7 +121,7 @@ export function AppSidebar() {
               />
           </div>
           {!collapsed && (
-            <span className="text-lg font-display font-bold text-sidebar-primary-foreground">
+            <span className="text-lg font-display font-bold text-sidebar-foreground">
               EduConnect
             </span>
           )}

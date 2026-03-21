@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AreaSeries,
   ColorType,
@@ -10,6 +10,7 @@ import {
   type Time,
   type UTCTimestamp,
 } from 'lightweight-charts';
+import { useTheme } from 'next-themes';
 
 type SupportedSeries = 'line' | 'area' | 'histogram';
 
@@ -38,6 +39,12 @@ const timeToKey = (time: Time) => {
   return `${time.year}-${time.month}-${time.day}`;
 };
 
+const readColorToken = (token: string, fallback: string) => {
+  if (typeof window === 'undefined') return fallback;
+  const value = getComputedStyle(document.documentElement).getPropertyValue(token).trim();
+  return value ? `hsl(${value})` : fallback;
+};
+
 export const LightweightCategoryChart = ({
   categories,
   series,
@@ -45,6 +52,17 @@ export const LightweightCategoryChart = ({
 }: LightweightCategoryChartProps) => {
   const chartContainerRef = useRef<HTMLDivElement | null>(null);
   const tooltipRef = useRef<HTMLDivElement | null>(null);
+  const { resolvedTheme } = useTheme();
+  const [themePalette, setThemePalette] = useState(() => ({
+    text: '#52606d',
+    grid: 'rgba(82, 96, 109, 0.08)',
+    border: 'rgba(82, 96, 109, 0.12)',
+    crosshair: 'rgba(14, 116, 144, 0.25)',
+    crosshairLabel: '#0f766e',
+    crosshairHorizontal: 'rgba(15, 118, 110, 0.2)',
+    crosshairHorizontalLabel: '#115e59',
+    tooltipText: '#52606d',
+  }));
 
   const timeLabelMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -55,6 +73,19 @@ export const LightweightCategoryChart = ({
   }, [categories]);
 
   useEffect(() => {
+    setThemePalette({
+      text: readColorToken('--muted-foreground', '#52606d'),
+      grid: `${readColorToken('--border', 'rgba(82, 96, 109, 0.12)').replace('hsl(', 'hsla(').replace(')', ' / 0.4)')}`,
+      border: `${readColorToken('--border', 'rgba(82, 96, 109, 0.12)').replace('hsl(', 'hsla(').replace(')', ' / 0.7)')}`,
+      crosshair: `${readColorToken('--primary', '#0ea5e9').replace('hsl(', 'hsla(').replace(')', ' / 0.24)')}`,
+      crosshairLabel: readColorToken('--primary', '#0f766e'),
+      crosshairHorizontal: `${readColorToken('--primary', '#0ea5e9').replace('hsl(', 'hsla(').replace(')', ' / 0.16)')}`,
+      crosshairHorizontalLabel: readColorToken('--primary', '#115e59'),
+      tooltipText: readColorToken('--muted-foreground', '#52606d'),
+    });
+  }, [resolvedTheme]);
+
+  useEffect(() => {
     if (!chartContainerRef.current || categories.length === 0 || series.length === 0) return;
 
     const container = chartContainerRef.current;
@@ -63,29 +94,29 @@ export const LightweightCategoryChart = ({
       height,
       layout: {
         background: { type: ColorType.Solid, color: 'transparent' },
-        textColor: '#52606d',
+        textColor: themePalette.text,
         attributionLogo: false,
       },
       grid: {
-        vertLines: { color: 'rgba(82, 96, 109, 0.08)' },
-        horzLines: { color: 'rgba(82, 96, 109, 0.08)' },
+        vertLines: { color: themePalette.grid },
+        horzLines: { color: themePalette.grid },
       },
       crosshair: {
         vertLine: {
-          color: 'rgba(14, 116, 144, 0.25)',
+          color: themePalette.crosshair,
           width: 1,
-          labelBackgroundColor: '#0f766e',
+          labelBackgroundColor: themePalette.crosshairLabel,
         },
         horzLine: {
-          color: 'rgba(15, 118, 110, 0.2)',
-          labelBackgroundColor: '#115e59',
+          color: themePalette.crosshairHorizontal,
+          labelBackgroundColor: themePalette.crosshairHorizontalLabel,
         },
       },
       rightPriceScale: {
-        borderColor: 'rgba(82, 96, 109, 0.12)',
+        borderColor: themePalette.border,
       },
       timeScale: {
-        borderColor: 'rgba(82, 96, 109, 0.12)',
+        borderColor: themePalette.border,
         ticksVisible: true,
         timeVisible: false,
         tickMarkFormatter: (time) => timeLabelMap.get(timeToKey(time)) ?? '',
@@ -158,7 +189,7 @@ export const LightweightCategoryChart = ({
         .join('');
 
       tooltip.innerHTML = `
-        <div style="font-size:12px;color:#52606d;margin-bottom:6px;">${timeLabelMap.get(timeToKey(param.time)) ?? ''}</div>
+        <div style="font-size:12px;color:${themePalette.tooltipText};margin-bottom:6px;">${timeLabelMap.get(timeToKey(param.time)) ?? ''}</div>
         ${lines}
       `;
       tooltip.style.opacity = '1';
@@ -180,7 +211,7 @@ export const LightweightCategoryChart = ({
       chart.unsubscribeCrosshairMove(updateTooltip);
       chart.remove();
     };
-  }, [categories, height, series, timeLabelMap]);
+  }, [categories, height, series, themePalette, timeLabelMap]);
 
   return (
     <div className="relative">
