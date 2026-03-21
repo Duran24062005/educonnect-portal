@@ -41,6 +41,7 @@ const TeacherActivitiesPage = lazy(() => import('./pages/teacher/TeacherActiviti
 const MyActivitiesPage = lazy(() => import('./pages/student/MyActivitiesPage'));
 const MyGradesPage = lazy(() => import('./pages/student/MyGradesPage'));
 const MyResultsPage = lazy(() => import('./pages/student/MyResultsPage'));
+const StudentBulletinPage = lazy(() => import('./pages/student/StudentBulletinPage'));
 const StudentActivityDetailPage = lazy(() => import('./pages/student/StudentActivityDetailPage'));
 const EvaluationStatsPage = lazy(() => import('./pages/EvaluationStatsPage'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
@@ -121,11 +122,12 @@ const App = () => (
                 <Route path="/groups/:id/scores" element={<ProfileCompleteGuard><RoleRoute roles={['teacher']}><GroupScoresPage /></RoleRoute></ProfileCompleteGuard>} />
                 <Route path="/period-results" element={<ProfileCompleteGuard><RoleRoute roles={['teacher']}><PeriodResultsPage /></RoleRoute></ProfileCompleteGuard>} />
 
-              {/* Student routes */}
-              <Route path="/my-activities" element={<ProfileCompleteGuard><RoleRoute roles={['student']}><MyActivitiesPage /></RoleRoute></ProfileCompleteGuard>} />
-              <Route path="/my-activities/:activityId" element={<ProfileCompleteGuard><RoleRoute roles={['student']}><StudentActivityDetailPage /></RoleRoute></ProfileCompleteGuard>} />
-              <Route path="/my-grades" element={<ProfileCompleteGuard><RoleRoute roles={['student']}><MyGradesPage /></RoleRoute></ProfileCompleteGuard>} />
-              <Route path="/my-results" element={<ProfileCompleteGuard><RoleRoute roles={['student']}><MyResultsPage /></RoleRoute></ProfileCompleteGuard>} />
+                {/* Student routes */}
+                <Route path="/my-activities" element={<ProfileCompleteGuard><RoleRoute roles={['student']}><MyActivitiesPage /></RoleRoute></ProfileCompleteGuard>} />
+                <Route path="/my-activities/:activityId" element={<ProfileCompleteGuard><RoleRoute roles={['student']}><StudentActivityDetailPage /></RoleRoute></ProfileCompleteGuard>} />
+                <Route path="/my-grades" element={<ProfileCompleteGuard><RoleRoute roles={['student']}><MyGradesPage /></RoleRoute></ProfileCompleteGuard>} />
+                <Route path="/my-results" element={<ProfileCompleteGuard><RoleRoute roles={['student']}><MyResultsPage /></RoleRoute></ProfileCompleteGuard>} />
+                <Route path="/my-bulletins" element={<ProfileCompleteGuard><RoleRoute roles={['student']}><StudentBulletinPage /></RoleRoute></ProfileCompleteGuard>} />
 
                 {/* Redirects */}
                 <Route path="*" element={<NotFound />} />

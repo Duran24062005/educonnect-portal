@@ -67,6 +67,7 @@ const studentItems = [
   { title: 'Mis Actividades', url: '/my-activities', icon: FileText },
   { title: 'Mis Calificaciones', url: '/my-grades', icon: ClipboardList },
   { title: 'Mis Resultados', url: '/my-results', icon: BarChart3 },
+  { title: 'Mis Boletines', url: '/my-bulletins', icon: FileText },
 ];
 
 export function AppSidebar() {

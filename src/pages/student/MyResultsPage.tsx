@@ -1,14 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { analyticsApi } from '@/api/analytics';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
 import LightweightCategoryChart from '@/components/charts/LightweightCategoryChart';
 import { toast } from 'sonner';
 
 const MyResultsPage = () => {
+  const navigate = useNavigate();
   const [periods, setPeriods] = useState<any[]>([]);
   const [areas, setAreas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,9 +71,14 @@ const MyResultsPage = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-display font-bold">Mis Resultados</h1>
-          <p className="text-muted-foreground">Evolución por periodo y comparativo anual con datos de prueba.</p>
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-2xl font-display font-bold">Mis Resultados</h1>
+            <p className="text-muted-foreground">Evolución por periodo y comparativo anual con datos de prueba.</p>
+          </div>
+          <Button variant="outline" onClick={() => navigate('/my-bulletins')}>
+            Ver boletín del periodo
+          </Button>
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
