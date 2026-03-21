@@ -16,6 +16,12 @@ import { useSchoolYears } from '@/hooks/useSchoolYears';
 import { useTeacherDashboardSummary } from '@/hooks/useDashboardSummary';
 
 const PASSING_SCORE = 6;
+const performanceVariant = (level?: string) => {
+  if (level === 'SUPERIOR') return 'default' as const;
+  if (level === 'ALTO') return 'secondary' as const;
+  if (level === 'BÁSICO') return 'outline' as const;
+  return 'destructive' as const;
+};
 
 const getPayload = (response: any) => response?.data?.data ?? response?.data;
 const assignmentKey = (groupId?: string, areaId?: string) => `${groupId || ''}:${areaId || ''}`;
@@ -244,19 +250,29 @@ const MyGroupsPage = () => {
                     <span>Grado {group.grade_name}</span>
                     <Badge variant="secondary">{group.area_name}</Badge>
                   </div>
-                  <div className="grid grid-cols-3 gap-2 text-center">
-                    <div className="rounded-lg bg-muted/50 p-2">
-                      <p className="text-xs text-muted-foreground">Promedio</p>
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div className="rounded-lg bg-muted/50 p-2">
+                        <p className="text-xs text-muted-foreground">Promedio</p>
                       <p className="font-semibold">{group.average.toFixed(1)}</p>
                     </div>
                     <div className="rounded-lg bg-muted/50 p-2">
                       <p className="text-xs text-muted-foreground">Aprobados</p>
                       <p className="font-semibold">{group.passed}</p>
                     </div>
-                    <div className="rounded-lg bg-muted/50 p-2">
-                      <p className="text-xs text-muted-foreground">Riesgo</p>
-                      <p className="font-semibold">{group.failed}</p>
+                      <div className="rounded-lg bg-muted/50 p-2">
+                        <p className="text-xs text-muted-foreground">Riesgo</p>
+                        <p className="font-semibold">{group.failed}</p>
+                      </div>
                     </div>
+                  <div className="flex flex-wrap gap-2">
+                    {group.performance_levels ? (
+                      <>
+                        <Badge variant={performanceVariant('SUPERIOR')}>Superior: {group.performance_levels.SUPERIOR}</Badge>
+                        <Badge variant={performanceVariant('ALTO')}>Alto: {group.performance_levels.ALTO}</Badge>
+                        <Badge variant={performanceVariant('BÁSICO')}>Básico: {group.performance_levels.BÁSICO}</Badge>
+                        <Badge variant={performanceVariant('BAJO')}>Bajo: {group.performance_levels.BAJO}</Badge>
+                      </>
+                    ) : null}
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Button
@@ -385,8 +401,8 @@ const MyGroupsPage = () => {
                             <TableCell>{student.student_email || 'Sin email'}</TableCell>
                             <TableCell>{student.average.toFixed(1)}</TableCell>
                             <TableCell>
-                              <Badge variant={student.status === 'passed' ? 'default' : 'destructive'}>
-                                {student.status === 'passed' ? 'Aprobado' : 'En riesgo'}
+                              <Badge variant={performanceVariant(student.performance_level)}>
+                                {student.performance_level || (student.status === 'passed' ? 'Aprobado' : 'En riesgo')}
                               </Badge>
                             </TableCell>
                             <TableCell className="text-right">
