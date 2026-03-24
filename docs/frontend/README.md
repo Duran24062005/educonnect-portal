@@ -17,6 +17,7 @@ Esta carpeta documenta como esta construido el frontend de EduConnect hoy, con f
 - [api-integration.md](./api-integration.md): capa HTTP, contratos y riesgos de integracion.
 - [state-management.md](./state-management.md): uso de Zustand, React Query y estado local.
 - [ui-patterns.md](./ui-patterns.md): layouts, componentes base y patrones de UI.
+- [000-doc-template.md](./000-doc-template.md): plantilla base para nueva documentacion funcional o tecnica.
 
 ## Nota actual
 
