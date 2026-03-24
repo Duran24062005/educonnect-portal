@@ -60,19 +60,13 @@ const slugify = (value?: string | null) => {
     .toLowerCase();
 };
 
-const schoolYearLabel = (year?: SchoolYearOption | null) =>
-  year?.name || (year?.year ? String(year.year) : 'Año lectivo');
-
 const periodRangeLabel = (period?: PeriodOption | null) => {
   if (!period?.start_date && !period?.end_date) return 'Rango no definido';
   return `${formatDate(period?.start_date)} - ${formatDate(period?.end_date)}`;
 };
 
-const behaviorLabel = (average: number) => {
-  if (average >= 9) return 'SUPERIOR';
-  if (average >= 8) return 'ALTO';
-  if (average >= 6) return 'BÁSICO';
-  return 'BAJO';
+const locationLabel = (municipality?: string | null, department?: string | null) => {
+  return [municipality, department, municipality || department ? 'Colombia' : null].filter(Boolean).join(' · ');
 };
 
 const StudentBulletinPage = () => {
@@ -141,15 +135,11 @@ const StudentBulletinPage = () => {
         return;
       }
 
-      setLoadingBulletin(true);
+        setLoadingBulletin(true);
       try {
         const data = await analyticsApi.getStudentBulletin({
           schoolYearId: activeYear._id,
           periodId: selectedPeriod._id,
-          periodName: selectedPeriod.name,
-          startDate: selectedPeriod.start_date,
-          endDate: selectedPeriod.end_date,
-          schoolYearLabel: schoolYearLabel(activeYear),
         });
         setBulletin(data);
       } catch {
@@ -180,11 +170,12 @@ const StudentBulletinPage = () => {
   const generalAverage = bulletin
     ? Number((bulletin.areas.reduce((sum, area) => sum + area.period_average, 0) / Math.max(bulletin.areas.length, 1)).toFixed(1))
     : 0;
-  const behaviorScore = Number(Math.min(5, Math.max(3, (generalAverage / 2).toFixed(1))).toFixed(1));
   const promotionText = attentionAreas === 0
     ? `EL ESTUDIANTE ES PROMOVIDO AL SIGUIENTE GRADO`
     : 'EL ESTUDIANTE CONTINÚA EN PLAN DE REFUERZO ACADÉMICO';
   const signatures = bulletin?.signatures || [];
+  const selectedPeriodIndex = Math.max(periods.findIndex((period) => period._id === selectedPeriodId), 0);
+  const institutionLocation = locationLabel(bulletin?.institution.municipality, bulletin?.institution.department);
 
   const handlePrint = () => {
     if (!bulletin) return;
@@ -358,13 +349,12 @@ const StudentBulletinPage = () => {
                     <h1 className="font-display text-[15px] font-bold leading-tight text-slate-950">
                       {bulletin.institution.official_name}
                     </h1>
-                    <p className="mt-1 text-[11px] font-semibold text-slate-700">Ciencia y Virtud</p>
-                    <p className="mt-1 text-[10px] text-slate-600">
-                      {bulletin.institution.municipality} · {bulletin.institution.department} · Colombia
-                    </p>
-                    <p className="text-[10px] text-slate-600">
-                      {bulletin.institution.header_text}
-                    </p>
+                    {institutionLocation ? (
+                      <p className="mt-1 text-[10px] text-slate-600">{institutionLocation}</p>
+                    ) : null}
+                    {bulletin.institution.header_text ? (
+                      <p className="text-[10px] text-slate-600">{bulletin.institution.header_text}</p>
+                    ) : null}
                   </div>
 
                   <div className="border-r border-sky-300">
@@ -423,21 +413,18 @@ const StudentBulletinPage = () => {
                     </thead>
                     <tbody>
                       {bulletin.areas.map((area, index) => {
-                        const periodScores = area.evaluations.map((evaluation) => evaluation.score);
-                        const p1 = Number((periodScores[0] || area.period_average).toFixed(1));
-                        const p2 = Number((periodScores[1] || area.period_average).toFixed(1));
-                        const p3 = Number((periodScores[2] || area.period_average).toFixed(1));
-                        const p4 = Number((periodScores[3] || area.period_average).toFixed(1));
-                        const absences = index % 4;
+                        const periodCells = Array.from({ length: 4 }, (_, cellIndex) =>
+                          cellIndex === selectedPeriodIndex ? area.period_average.toFixed(1) : '-'
+                        );
                         return (
                           <tr key={area.area_id} className="odd:bg-white even:bg-sky-50/20">
-                            <td className="border-r border-t border-sky-300 px-1 py-1 text-center text-[10px]">{absences}</td>
+                            <td className="border-r border-t border-sky-300 px-1 py-1 text-center text-[10px]">N/D</td>
                             <td className="border-r border-t border-sky-300 px-2 py-1 text-[10px] font-semibold uppercase">{area.area_name}</td>
-                            <td className="border-r border-t border-sky-300 px-1 py-1 text-center text-[10px]">100%</td>
-                            <td className="border-r border-t border-sky-300 px-1 py-1 text-center text-[10px]">{p1.toFixed(1)}</td>
-                            <td className="border-r border-t border-sky-300 px-1 py-1 text-center text-[10px]">{p2.toFixed(1)}</td>
-                            <td className="border-r border-t border-sky-300 px-1 py-1 text-center text-[10px]">{p3.toFixed(1)}</td>
-                            <td className="border-r border-t border-sky-300 px-1 py-1 text-center text-[10px]">{p4.toFixed(1)}</td>
+                            <td className="border-r border-t border-sky-300 px-1 py-1 text-center text-[10px]">N/D</td>
+                            <td className="border-r border-t border-sky-300 px-1 py-1 text-center text-[10px]">{periodCells[0]}</td>
+                            <td className="border-r border-t border-sky-300 px-1 py-1 text-center text-[10px]">{periodCells[1]}</td>
+                            <td className="border-r border-t border-sky-300 px-1 py-1 text-center text-[10px]">{periodCells[2]}</td>
+                            <td className="border-r border-t border-sky-300 px-1 py-1 text-center text-[10px]">{periodCells[3]}</td>
                             <td className="border-r border-t border-sky-300 px-1 py-1 text-center text-[10px] font-bold">{area.period_average.toFixed(1)}</td>
                             <td className="border-t border-sky-300 px-1 py-1 text-center text-[10px] font-bold">{area.final_result_label.toUpperCase()}</td>
                           </tr>
@@ -446,8 +433,8 @@ const StudentBulletinPage = () => {
                     </tbody>
                   </table>
                   <div className="grid grid-cols-[1fr_auto] border-t border-sky-300 text-[9px]">
-                    <div className="px-2 py-1">Retardos acumulados: 0</div>
-                    <div className="border-l border-sky-300 px-2 py-1">Evaciones acumuladas: {attentionAreas}</div>
+                    <div className="px-2 py-1">Retardos acumulados: N/D</div>
+                    <div className="border-l border-sky-300 px-2 py-1">Evasiones acumuladas: N/D</div>
                   </div>
                 </div>
 
@@ -458,12 +445,12 @@ const StudentBulletinPage = () => {
                     <div className="px-2 py-1 text-center text-[10px] font-bold uppercase">Juicio</div>
                   </div>
                   <div className="grid grid-cols-[1fr_78px_96px] text-[10px]">
-                    <div className="border-r border-t border-sky-300 px-2 py-1">Manifiesta sentido de pertenencia institucional.</div>
+                    <div className="border-r border-t border-sky-300 px-2 py-1">Sin registro disciplinario disponible en este boletín.</div>
                     <div className="border-r border-t border-sky-300 px-2 py-1 text-center" />
                     <div className="border-t border-sky-300 px-2 py-1 text-center" />
-                    <div className="border-r border-t border-sky-300 px-2 py-1">Respeta y participa de las actividades planteadas por los docentes y sus compañeros.</div>
-                    <div className="border-r border-t border-sky-300 px-2 py-1 text-center font-bold">{behaviorScore.toFixed(1)}</div>
-                    <div className="border-t border-sky-300 px-2 py-1 text-center font-bold">{behaviorLabel(generalAverage)}</div>
+                    <div className="border-r border-t border-sky-300 px-2 py-1">La información de convivencia no está integrada a este reporte.</div>
+                    <div className="border-r border-t border-sky-300 px-2 py-1 text-center font-bold">N/D</div>
+                    <div className="border-t border-sky-300 px-2 py-1 text-center font-bold">N/D</div>
                   </div>
                 </div>
 
@@ -521,10 +508,10 @@ const StudentBulletinPage = () => {
 
                 <div className="mt-6 grid grid-cols-2 gap-2 border border-sky-300 text-[9px]">
                   <div className="border-r border-sky-300 px-2 py-1">
-                    Sede A: Carrera 8 No. 9-25 Centro · Tel. (577) 6650427
+                    Documento generado desde EduConnect
                   </div>
                   <div className="px-2 py-1">
-                    Sede B: Calle 10 No. 10-05 San Antonio · Tel. (577) 6558635
+                    Datos académicos correspondientes al periodo seleccionado
                   </div>
                 </div>
 

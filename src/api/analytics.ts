@@ -462,64 +462,17 @@ export const analyticsApi = {
   getStudentBulletin: async ({
     schoolYearId,
     periodId,
-    periodName,
-    startDate,
-    endDate,
-    schoolYearLabel,
   }: {
-    schoolYearId?: string;
+    schoolYearId: string;
     periodId: string;
-    periodName: string;
-    startDate?: string | null;
-    endDate?: string | null;
-    schoolYearLabel?: string | null;
   }): Promise<StudentBulletinDocument> => {
-    await wait(220);
-
-    if (schoolYearId) {
-      assertObjectId(schoolYearId, 'school_year_id');
-    }
-
-    const areas = buildBulletinAreas(periodName);
-
-    return {
-      institution: {
-        logo_url: 'https://edu-connect-beta.vercel.app/img/EduConectLogo.png',
-        official_name: 'Institución Educativa Municipal Nuevo Horizonte',
-        municipality: 'Bucaramanga',
-        department: 'Santander',
-        dane_code: '168001008847',
-        header_text: 'Educación pública con enfoque integral, ciudadanía y excelencia académica',
-        legal_note: 'Documento generado por la plataforma EduConnect. Su validez depende de la verificación institucional.',
+    const response = await api.get('/api/analytics/student/me/bulletin', {
+      params: {
+        school_year_id: assertObjectId(schoolYearId, 'school_year_id'),
+        period_id: assertObjectId(periodId, 'period_id'),
       },
-      student: {
-        full_name: 'Mariana Torres Suárez',
-        document_label: 'TI',
-        document_number: '1098765432',
-        code: 'EC-2026-0842',
-      },
-      enrollment: {
-        grade_name: '8°',
-        group_name: 'A',
-        school_year_label: schoolYearLabel || '2026',
-        school_shift: 'Mañana',
-      },
-      period: {
-        id: periodId,
-        name: periodName,
-        start_date: startDate || null,
-        end_date: endDate || null,
-        issued_at: new Date().toISOString(),
-      },
-      director_name: 'Lic. Andrea Milena Rojas',
-      teacher_comment: 'La estudiante mantiene un desempeño consistente y una participación respetuosa en clase. Se recomienda reforzar la argumentación en Sociales y sostener el buen ritmo de trabajo autónomo en las demás áreas.',
-      signatures: [
-        { label: 'Director(a) de grupo', name: 'Lic. Andrea Milena Rojas' },
-        { label: 'Coordinación académica', name: 'Mg. Carlos Eduardo Niño' },
-        { label: 'Acudiente', name: '____________________________' },
-      ],
-      areas,
-    };
+    });
+    return response.data?.data ?? response.data;
   },
   getTeacherGroupsAnalytics: async () => {
     await wait();
