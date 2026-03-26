@@ -34,12 +34,6 @@ const findUsersArray = (value: any): any[] => {
   return [];
 };
 
-const parseUsersFromResponse = (response: any) => {
-  const payload = response?.data;
-  const usersList = findUsersArray(payload);
-  return usersList.map(normalizeUserRow);
-};
-
 const getPaginationMeta = (response: any) => {
   const payload = response?.data?.data ?? response?.data ?? {};
   const pagination = payload?.pagination ?? {};
@@ -60,56 +54,66 @@ const getPaginationMeta = (response: any) => {
     pagination?.currentPage ??
     payload?.current_page ??
     payload?.currentPage;
+  const limit =
+    pagination?.limit ??
+    pagination?.page_size ??
+    pagination?.pageSize ??
+    payload?.limit ??
+    payload?.page_size ??
+    payload?.pageSize;
 
   return {
-    total: typeof total === 'number' ? total : undefined,
-    pages: typeof pages === 'number' ? pages : undefined,
-    currentPage: typeof currentPage === 'number' ? currentPage : undefined,
+    total: typeof total === 'number' ? total : 0,
+    pages: typeof pages === 'number' ? pages : 1,
+    currentPage: typeof currentPage === 'number' ? currentPage : 1,
+    limit: typeof limit === 'number' ? limit : undefined,
   };
 };
 
-const fetchAllUsers = async () => {
-  const pageSize = 50;
-  let page = 1;
-  let hasMore = true;
-  const all: any[] = [];
-
-  while (hasMore) {
-    const response = await usersApi.list({ page, limit: pageSize });
-    const chunk = parseUsersFromResponse(response);
-    all.push(...chunk);
-
-    const meta = getPaginationMeta(response);
-    if (meta.pages && meta.currentPage) hasMore = meta.currentPage < meta.pages;
-    else if (meta.pages) hasMore = page < meta.pages;
-    else if (meta.total !== undefined) hasMore = all.length < meta.total;
-    else hasMore = chunk.length === pageSize;
-
-    page += 1;
-    if (page > 100) hasMore = false;
-  }
-
-  const unique = new Map<string, any>();
-  all.forEach((user) => {
-    if (user?._id) unique.set(user._id, user);
-  });
-  return Array.from(unique.values());
+type UseUsersParams = {
+  page: number;
+  limit: number;
+  search?: string;
+  role?: string;
+  status?: string;
 };
 
-export const useUsers = () => {
-  const query = useQuery({
-    queryKey: ['users', 'all'],
-    queryFn: fetchAllUsers,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 15 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    retry: 1,
+const fetchUsersPage = async ({ page, limit, search, role, status }: UseUsersParams) => {
+  const response = await usersApi.list({
+    page,
+    limit,
+    search: search?.trim() || undefined,
+    role: role && role !== 'all' ? role : undefined,
+    status: status && status !== 'all' ? status : undefined,
   });
 
   return {
-    users: query.data ?? [],
+    users: findUsersArray(response?.data).map(normalizeUserRow),
+    pagination: getPaginationMeta(response),
+  };
+};
+
+export const useUsers = ({ page, limit, search, role, status }: UseUsersParams) => {
+  const query = useQuery({
+    queryKey: ['users', 'list', page, limit, search?.trim() || '', role || 'all', status || 'all'],
+    queryFn: () => fetchUsersPage({ page, limit, search, role, status }),
+    staleTime: 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    retry: 1,
+    placeholderData: (previousData) => previousData,
+  });
+
+  return {
+    users: query.data?.users ?? [],
+    pagination: query.data?.pagination ?? {
+      total: 0,
+      pages: 1,
+      currentPage: page,
+      limit,
+    },
     isLoading: query.isLoading,
-    isRefetching: query.isRefetching,
+    isFetching: query.isFetching,
     isError: query.isError,
     error: query.error,
     refetch: query.refetch,

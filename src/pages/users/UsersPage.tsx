@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { usersApi } from '@/api/users';
-import { useUsers, normalizeRoleLabel } from '@/hooks/useUsers';
+import { useUsers } from '@/hooks/useUsers';
 import DashboardLayout from '@/layouts/DashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -65,35 +65,27 @@ const resolveInitials = (user: any) => {
 const resolveAvatarUrl = (user: any) => getMediaUrl(user?.person?.profile_photo_url || user?.person?.profile_photo);
 
 const UsersPage = () => {
-  const { users: allUsers, isLoading: loading, isError, refetch } = useUsers();
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
   const limit = 10;
-
-  const filteredUsers = useMemo(() => {
-    const searchTerm = search.trim().toLowerCase();
-    return allUsers.filter((user: any) => {
-      const fullName = `${user?.person?.first_name || ''} ${user?.person?.last_name || ''}`.trim().toLowerCase();
-      const email = String(user?.email || '').toLowerCase();
-      const role = String(user?.role || '').toLowerCase();
-      const status = String(user?.status || '').toLowerCase();
-
-      const matchesSearch = !searchTerm || fullName.includes(searchTerm) || email.includes(searchTerm);
-      const matchesRole = roleFilter === 'all' || role === roleFilter.toLowerCase();
-      const matchesStatus = statusFilter === 'all' || status === statusFilter.toLowerCase();
-
-      return matchesSearch && matchesRole && matchesStatus;
-    });
-  }, [allUsers, search, roleFilter, statusFilter]);
-
-  const total = filteredUsers.length;
-  const users = useMemo(() => {
-    const start = (page - 1) * limit;
-    return filteredUsers.slice(start, start + limit);
-  }, [filteredUsers, page]);
+  const {
+    users,
+    pagination,
+    isLoading: loading,
+    isError,
+    refetch,
+  } = useUsers({
+    page,
+    limit,
+    search,
+    role: roleFilter,
+    status: statusFilter,
+  });
+  const total = pagination.total;
+  const totalPages = Math.max(pagination.pages || 1, 1);
 
   useEffect(() => {
     if (isError) toast.error('No se pudieron cargar los usuarios');
@@ -118,8 +110,6 @@ const UsersPage = () => {
       toast.error(err.response?.data?.message || 'Error');
     }
   };
-
-  const totalPages = Math.ceil(total / limit);
 
   return (
     <DashboardLayout>
