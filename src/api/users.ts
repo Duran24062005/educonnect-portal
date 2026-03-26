@@ -49,14 +49,7 @@ export const usersApi = {
           _ts: Date.now(),
         }
       : params;
-    return api.get('/api/users', {
-      params: normalizedParams,
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        Pragma: 'no-cache',
-        Expires: '0',
-      },
-    });
+    return api.get('/api/users', { params: normalizedParams });
   },
   listByRole: (role: string, params?: { page?: number; limit?: number }) =>
     api.get(`/api/users/role/${validateRole(role)}`, {
