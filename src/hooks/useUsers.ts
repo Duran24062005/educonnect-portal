@@ -42,11 +42,29 @@ const parseUsersFromResponse = (response: any) => {
 
 const getPaginationMeta = (response: any) => {
   const payload = response?.data?.data ?? response?.data ?? {};
-  const total = payload?.pagination?.total ?? payload?.total ?? payload?.count;
-  const pages = payload?.pagination?.pages ?? payload?.pages;
+  const pagination = payload?.pagination ?? {};
+  const total =
+    pagination?.total ??
+    pagination?.count ??
+    payload?.total ??
+    payload?.count;
+  const pages =
+    pagination?.pages ??
+    pagination?.total_pages ??
+    pagination?.totalPages ??
+    payload?.pages ??
+    payload?.total_pages ??
+    payload?.totalPages;
+  const currentPage =
+    pagination?.current_page ??
+    pagination?.currentPage ??
+    payload?.current_page ??
+    payload?.currentPage;
+
   return {
     total: typeof total === 'number' ? total : undefined,
     pages: typeof pages === 'number' ? pages : undefined,
+    currentPage: typeof currentPage === 'number' ? currentPage : undefined,
   };
 };
 
@@ -62,7 +80,8 @@ const fetchAllUsers = async () => {
     all.push(...chunk);
 
     const meta = getPaginationMeta(response);
-    if (meta.pages) hasMore = page < meta.pages;
+    if (meta.pages && meta.currentPage) hasMore = meta.currentPage < meta.pages;
+    else if (meta.pages) hasMore = page < meta.pages;
     else if (meta.total !== undefined) hasMore = all.length < meta.total;
     else hasMore = chunk.length === pageSize;
 
