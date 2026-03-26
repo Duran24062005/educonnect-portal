@@ -270,10 +270,22 @@ const UsersPage = () => {
                   Página {page} de {totalPages} ({total} usuarios)
                 </p>
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="icon" disabled={page <= 1} onClick={() => setPage(page - 1)}>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    aria-label="Ir a la pagina anterior"
+                    disabled={page <= 1}
+                    onClick={() => setPage(page - 1)}
+                  >
                     <ChevronLeft className="w-4 h-4" />
                   </Button>
-                  <Button variant="outline" size="icon" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    aria-label="Ir a la pagina siguiente"
+                    disabled={page >= totalPages}
+                    onClick={() => setPage(page + 1)}
+                  >
                     <ChevronRight className="w-4 h-4" />
                   </Button>
                 </div>
