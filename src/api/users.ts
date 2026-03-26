@@ -46,9 +46,17 @@ export const usersApi = {
           limit: toInt(params.limit),
           role: validateRole(params.role),
           status: validateStatus(params.status),
+          _ts: Date.now(),
         }
       : params;
-    return api.get('/api/users', { params: normalizedParams });
+    return api.get('/api/users', {
+      params: normalizedParams,
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        Pragma: 'no-cache',
+        Expires: '0',
+      },
+    });
   },
   listByRole: (role: string, params?: { page?: number; limit?: number }) =>
     api.get(`/api/users/role/${validateRole(role)}`, {

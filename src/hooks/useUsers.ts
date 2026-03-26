@@ -101,7 +101,6 @@ export const useUsers = ({ page, limit, search, role, status }: UseUsersParams) 
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
     retry: 1,
-    placeholderData: (previousData) => previousData,
   });
 
   return {
