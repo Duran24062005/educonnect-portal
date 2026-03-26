@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { analyticsApi, type StudentAreaMetric, type StudentOverview } from '@/api/analytics';
+import { useSchoolYears } from '@/hooks/useSchoolYears';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -10,18 +11,35 @@ import LightweightCategoryChart from '@/components/charts/LightweightCategoryCha
 import { toast } from 'sonner';
 
 const MyGradesPage = () => {
+  const { data: years = [], isLoading: yearsLoading } = useSchoolYears();
+  const activeYear = useMemo(
+    () => years.find((year: any) => year?.is_active) || years[0] || null,
+    [years]
+  );
+  const [selectedYearId, setSelectedYearId] = useState('');
   const [overview, setOverview] = useState<StudentOverview | null>(null);
   const [areas, setAreas] = useState<StudentAreaMetric[]>([]);
   const [selectedArea, setSelectedArea] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (activeYear?._id && !selectedYearId) {
+      setSelectedYearId(activeYear._id);
+    }
+  }, [activeYear?._id, selectedYearId]);
+
+  useEffect(() => {
     const load = async () => {
+      if (!selectedYearId) {
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       try {
         const [overviewData, areaData] = await Promise.all([
-          analyticsApi.getStudentOverview(),
-          analyticsApi.getStudentAreas(),
+          analyticsApi.getStudentOverview(selectedYearId),
+          analyticsApi.getStudentAreas(selectedYearId),
         ]);
         setOverview(overviewData);
         setAreas(areaData);
@@ -33,8 +51,10 @@ const MyGradesPage = () => {
       }
     };
 
-    load();
-  }, []);
+    void load();
+  }, [selectedYearId]);
+
+  const isBusy = yearsLoading || loading;
 
   const activeArea = useMemo(
     () => areas.find((area) => area.area_id === selectedArea) ?? areas[0] ?? null,
@@ -70,11 +90,26 @@ const MyGradesPage = () => {
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-display font-bold">Mis Métricas Académicas</h1>
-          <p className="text-muted-foreground">Seguimiento por materia, periodo y año con datos de prueba.</p>
+          <p className="text-muted-foreground">Seguimiento por materia, periodo y año escolar con resultados reales.</p>
+        </div>
+
+        <div className="flex justify-end">
+          <Select value={selectedYearId} onValueChange={setSelectedYearId}>
+            <SelectTrigger className="w-full max-w-xs">
+              <SelectValue placeholder="Selecciona año escolar" />
+            </SelectTrigger>
+            <SelectContent>
+              {years.map((year: any) => (
+                <SelectItem key={year._id} value={year._id}>
+                  {year.name || year.year}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {loading
+          {isBusy
             ? Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-32 w-full" />)
             : (
               [
@@ -101,10 +136,12 @@ const MyGradesPage = () => {
               <CardTitle>Promedio Final por Materia</CardTitle>
             </CardHeader>
             <CardContent>
-              {loading ? (
+              {isBusy ? (
                 <Skeleton className="h-80 w-full" />
-              ) : (
+              ) : areas.length > 0 ? (
                 <LightweightCategoryChart categories={areaCategories} series={areaSeries} height={300} />
+              ) : (
+                <p className="py-8 text-center text-muted-foreground">No hay áreas consolidadas para este año escolar.</p>
               )}
             </CardContent>
           </Card>
@@ -126,10 +163,12 @@ const MyGradesPage = () => {
               </Select>
             </CardHeader>
             <CardContent>
-              {loading || !activeArea ? (
+              {isBusy || !activeArea ? (
                 <Skeleton className="h-80 w-full" />
-              ) : (
+              ) : periodCategories.length > 0 ? (
                 <LightweightCategoryChart categories={periodCategories} series={periodSeries} height={300} />
+              ) : (
+                <p className="py-8 text-center text-muted-foreground">No hay periodos consolidados para esta área.</p>
               )}
             </CardContent>
           </Card>
@@ -151,7 +190,7 @@ const MyGradesPage = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {loading ? (
+                  {isBusy ? (
                     Array.from({ length: 4 }).map((_, index) => (
                       <TableRow key={index}>
                         <TableCell><Skeleton className="h-4 w-32" /></TableCell>

@@ -1,15 +1,19 @@
 import api from './axios';
 import { assertObjectId } from '@/lib/object-id';
 
-const wait = (ms = 150) => new Promise((resolve) => setTimeout(resolve, ms));
-
 export interface StudentOverview {
+  student_id: string;
+  school_year: {
+    _id: string;
+    year: number;
+    name: string;
+  };
   general_average: number;
   final_status: 'passed' | 'failed' | 'repeating';
   passed_areas: number;
   failed_areas: number;
-  best_area: string;
-  attention_area: string;
+  best_area: string | null;
+  attention_area: string | null;
 }
 
 export interface StudentAreaMetric {
@@ -17,8 +21,17 @@ export interface StudentAreaMetric {
   area_name: string;
   final_average: number;
   status: 'passed' | 'failed';
-  year_averages: Array<{ year: string; average: number }>;
-  periods: Array<{ period_name: string; average: number }>;
+  year_averages: Array<{ school_year_id?: string; year: string; average: number }>;
+  periods: Array<{ period_id?: string; period_name: string; average: number; status?: 'passed' | 'failed' }>;
+}
+
+export interface StudentPeriodSummary {
+  period_id: string;
+  period_name: string;
+  general_average: number;
+  passed_areas: number;
+  failed_areas: number;
+  status: 'passed' | 'failed';
 }
 
 export interface StudentBulletinEvaluation {
@@ -192,272 +205,70 @@ export interface TeacherDashboardSummary {
   highlight_students: TeacherDashboardStudentHighlight[];
 }
 
-const studentOverview: StudentOverview = {
-  general_average: 8.1,
-  final_status: 'passed',
-  passed_areas: 8,
-  failed_areas: 1,
-  best_area: 'Matemáticas',
-  attention_area: 'Sociales',
-};
+interface StudentOverviewResponse {
+  student_id: string;
+  school_year: StudentOverview['school_year'];
+  summary: {
+    general_average: number;
+    final_status: StudentOverview['final_status'];
+    passed_areas: number;
+    failed_areas: number;
+  };
+  best_area: string | null;
+  attention_area: string | null;
+}
 
-const studentAreas: StudentAreaMetric[] = [
-  {
-    area_id: 'math',
-    area_name: 'Matemáticas',
-    final_average: 8.7,
-    status: 'passed',
-    year_averages: [
-      { year: '2024', average: 7.9 },
-      { year: '2025', average: 8.2 },
-      { year: '2026', average: 8.7 },
-    ],
-    periods: [
-      { period_name: 'Periodo 1', average: 8.2 },
-      { period_name: 'Periodo 2', average: 8.9 },
-      { period_name: 'Periodo 3', average: 8.8 },
-      { period_name: 'Periodo 4', average: 8.7 },
-    ],
-  },
-  {
-    area_id: 'lang',
-    area_name: 'Lenguaje',
-    final_average: 7.8,
-    status: 'passed',
-    year_averages: [
-      { year: '2024', average: 7.2 },
-      { year: '2025', average: 7.5 },
-      { year: '2026', average: 7.8 },
-    ],
-    periods: [
-      { period_name: 'Periodo 1', average: 7.4 },
-      { period_name: 'Periodo 2', average: 7.9 },
-      { period_name: 'Periodo 3', average: 8.0 },
-      { period_name: 'Periodo 4', average: 7.8 },
-    ],
-  },
-  {
-    area_id: 'science',
-    area_name: 'Ciencias',
-    final_average: 8.0,
-    status: 'passed',
-    year_averages: [
-      { year: '2024', average: 7.1 },
-      { year: '2025', average: 7.6 },
-      { year: '2026', average: 8.0 },
-    ],
-    periods: [
-      { period_name: 'Periodo 1', average: 7.8 },
-      { period_name: 'Periodo 2', average: 8.1 },
-      { period_name: 'Periodo 3', average: 8.2 },
-      { period_name: 'Periodo 4', average: 8.0 },
-    ],
-  },
-  {
-    area_id: 'social',
-    area_name: 'Sociales',
-    final_average: 6.4,
-    status: 'failed',
-    year_averages: [
-      { year: '2024', average: 6.9 },
-      { year: '2025', average: 6.8 },
-      { year: '2026', average: 6.4 },
-    ],
-    periods: [
-      { period_name: 'Periodo 1', average: 6.8 },
-      { period_name: 'Periodo 2', average: 6.5 },
-      { period_name: 'Periodo 3', average: 6.2 },
-      { period_name: 'Periodo 4', average: 6.4 },
-    ],
-  },
-];
+interface StudentAreasResponse {
+  areas: StudentAreaMetric[];
+}
 
-const bulletinAreaSeed = [
-  {
-    area_id: 'math',
-    area_name: 'Matemáticas',
-    evaluations: [
-      { id: 'math-1', name: 'Taller de problemas', score: 8.7, weight: 25 },
-      { id: 'math-2', name: 'Quiz de fracciones', score: 9.1, weight: 20 },
-      { id: 'math-3', name: 'Proyecto geométrico', score: 8.9, weight: 25 },
-      { id: 'math-4', name: 'Prueba final', score: 8.6, weight: 30 },
-    ],
-  },
-  {
-    area_id: 'lang',
-    area_name: 'Lengua Castellana',
-    evaluations: [
-      { id: 'lang-1', name: 'Comprensión lectora', score: 8.1, weight: 30 },
-      { id: 'lang-2', name: 'Ensayo argumentativo', score: 7.6, weight: 30 },
-      { id: 'lang-3', name: 'Exposición oral', score: 8.0, weight: 20 },
-      { id: 'lang-4', name: 'Prueba escrita', score: 7.8, weight: 20 },
-    ],
-  },
-  {
-    area_id: 'english',
-    area_name: 'Inglés',
-    evaluations: [
-      { id: 'eng-1', name: 'Vocabulary check', score: 8.9, weight: 20 },
-      { id: 'eng-2', name: 'Speaking task', score: 8.4, weight: 25 },
-      { id: 'eng-3', name: 'Reading workshop', score: 8.6, weight: 25 },
-      { id: 'eng-4', name: 'Final exam', score: 8.8, weight: 30 },
-    ],
-  },
-  {
-    area_id: 'science',
-    area_name: 'Ciencias Naturales',
-    evaluations: [
-      { id: 'sci-1', name: 'Laboratorio', score: 8.4, weight: 30 },
-      { id: 'sci-2', name: 'Informe experimental', score: 7.9, weight: 25 },
-      { id: 'sci-3', name: 'Trabajo colaborativo', score: 8.2, weight: 20 },
-      { id: 'sci-4', name: 'Prueba del periodo', score: 8.1, weight: 25 },
-    ],
-  },
-  {
-    area_id: 'social',
-    area_name: 'Ciencias Sociales',
-    evaluations: [
-      { id: 'soc-1', name: 'Línea del tiempo', score: 6.8, weight: 20 },
-      { id: 'soc-2', name: 'Debate histórico', score: 6.2, weight: 30 },
-      { id: 'soc-3', name: 'Mapa conceptual', score: 6.5, weight: 20 },
-      { id: 'soc-4', name: 'Evaluación final', score: 6.0, weight: 30 },
-    ],
-  },
-  {
-    area_id: 'ethics',
-    area_name: 'Ética y Valores',
-    evaluations: [
-      { id: 'eth-1', name: 'Bitácora reflexiva', score: 9.3, weight: 35 },
-      { id: 'eth-2', name: 'Proyecto de convivencia', score: 9.0, weight: 35 },
-      { id: 'eth-3', name: 'Participación', score: 9.4, weight: 30 },
-    ],
-  },
-  {
-    area_id: 'arts',
-    area_name: 'Educación Artística',
-    evaluations: [
-      { id: 'art-1', name: 'Portafolio visual', score: 8.7, weight: 40 },
-      { id: 'art-2', name: 'Presentación creativa', score: 8.9, weight: 35 },
-      { id: 'art-3', name: 'Autoevaluación', score: 9.1, weight: 25 },
-    ],
-  },
-];
+interface StudentPeriodSummaryResponse {
+  periods: StudentPeriodSummary[];
+}
 
-const performanceLabel = (score: number) => {
-  if (score >= 9) return 'Superior';
-  if (score >= 8) return 'Alto';
-  if (score >= 6) return 'Básico';
-  return 'Bajo';
-};
+const unwrapPayload = <T>(payload: any): T => payload?.data ?? payload;
 
-const weightedAverage = (evaluations: StudentBulletinEvaluation[]) => {
-  const totalWeight = evaluations.reduce((sum, evaluation) => sum + (evaluation.weight || 0), 0);
-  if (!totalWeight) {
-    const average = evaluations.reduce((sum, evaluation) => sum + evaluation.score, 0) / Math.max(evaluations.length, 1);
-    return Number(average.toFixed(1));
-  }
+export const normalizeStudentOverview = (payload: StudentOverviewResponse): StudentOverview => ({
+  student_id: payload.student_id,
+  school_year: payload.school_year,
+  general_average: Number(payload.summary?.general_average ?? 0),
+  final_status: payload.summary?.final_status ?? 'failed',
+  passed_areas: Number(payload.summary?.passed_areas ?? 0),
+  failed_areas: Number(payload.summary?.failed_areas ?? 0),
+  best_area: payload.best_area ?? null,
+  attention_area: payload.attention_area ?? null,
+});
 
-  const average = evaluations.reduce(
-    (sum, evaluation) => sum + ((evaluation.score * (evaluation.weight || 0)) / totalWeight),
-    0
-  );
-  return Number(average.toFixed(1));
-};
+export const normalizeStudentAreas = (payload: StudentAreasResponse): StudentAreaMetric[] =>
+  Array.isArray(payload?.areas) ? payload.areas : [];
 
-const buildBulletinAreas = (periodName: string): StudentBulletinArea[] => {
-  const periodShift = periodName.endsWith('2')
-    ? 0.2
-    : periodName.endsWith('3')
-      ? 0.35
-      : periodName.endsWith('4')
-        ? 0.1
-        : 0;
-
-  return bulletinAreaSeed.map((area, index) => {
-    const evaluations = area.evaluations.map((evaluation, evaluationIndex) => {
-      const delta = ((index + evaluationIndex) % 3 === 0 ? periodShift : periodShift / 2);
-      return {
-        ...evaluation,
-        score: Number(Math.min(10, evaluation.score + delta).toFixed(1)),
-      };
-    });
-
-    const periodAverage = weightedAverage(evaluations);
-    return {
-      area_id: area.area_id,
-      area_name: area.area_name,
-      period_average: periodAverage,
-      final_result_label: performanceLabel(periodAverage),
-      status: periodAverage >= 6 ? 'passed' : 'failed',
-      evaluations,
-    };
-  });
-};
-
-const teacherGroups: TeacherGroupAnalytics[] = [
-  {
-    group_id: '65a0000000000000000008a1',
-    group_name: '8A',
-    grade_name: '8',
-    area_name: 'Matemáticas',
-    student_count: 32,
-    average: 7.3,
-    passed: 25,
-    failed: 7,
-    periods: [
-      { period_name: 'Periodo 1', average: 6.8, passed: 20, failed: 12 },
-      { period_name: 'Periodo 2', average: 7.2, passed: 23, failed: 9 },
-      { period_name: 'Periodo 3', average: 7.5, passed: 25, failed: 7 },
-      { period_name: 'Periodo 4', average: 7.3, passed: 25, failed: 7 },
-    ],
-    students: [
-      { student_name: 'Ana Lopez', average: 9.1, status: 'passed' },
-      { student_name: 'Juan Perez', average: 8.4, status: 'passed' },
-      { student_name: 'Sofia Ruiz', average: 7.9, status: 'passed' },
-      { student_name: 'Carlos Mora', average: 5.8, status: 'failed' },
-    ],
-  },
-  {
-    group_id: '65a0000000000000000009b2',
-    group_name: '9B',
-    grade_name: '9',
-    area_name: 'Matemáticas',
-    student_count: 29,
-    average: 6.9,
-    passed: 19,
-    failed: 10,
-    periods: [
-      { period_name: 'Periodo 1', average: 6.4, passed: 17, failed: 12 },
-      { period_name: 'Periodo 2', average: 6.7, passed: 18, failed: 11 },
-      { period_name: 'Periodo 3', average: 7.0, passed: 19, failed: 10 },
-      { period_name: 'Periodo 4', average: 6.9, passed: 19, failed: 10 },
-    ],
-    students: [
-      { student_name: 'Valeria Gil', average: 8.7, status: 'passed' },
-      { student_name: 'Mateo Diaz', average: 7.5, status: 'passed' },
-      { student_name: 'Daniel Rios', average: 6.2, status: 'passed' },
-      { student_name: 'Laura Soto', average: 5.4, status: 'failed' },
-    ],
-  },
-];
+export const normalizeStudentPeriodSummary = (payload: StudentPeriodSummaryResponse): StudentPeriodSummary[] =>
+  Array.isArray(payload?.periods) ? payload.periods : [];
 
 export const analyticsApi = {
-  getStudentOverview: async () => {
-    await wait();
-    return studentOverview;
+  getStudentOverview: async (schoolYearId: string): Promise<StudentOverview> => {
+    const response = await api.get('/api/analytics/student/me/overview', {
+      params: {
+        school_year_id: assertObjectId(schoolYearId, 'school_year_id'),
+      },
+    });
+    return normalizeStudentOverview(unwrapPayload<StudentOverviewResponse>(response.data));
   },
-  getStudentAreas: async () => {
-    await wait();
-    return studentAreas;
+  getStudentAreas: async (schoolYearId: string): Promise<StudentAreaMetric[]> => {
+    const response = await api.get('/api/analytics/student/me/areas', {
+      params: {
+        school_year_id: assertObjectId(schoolYearId, 'school_year_id'),
+      },
+    });
+    return normalizeStudentAreas(unwrapPayload<StudentAreasResponse>(response.data));
   },
-  getStudentPeriodSummary: async () => {
-    await wait();
-    return [
-      { period_id: 'period-1', period_name: 'Periodo 1', general_average: 7.1, passed_areas: 6, failed_areas: 3, status: 'passed' },
-      { period_id: 'period-2', period_name: 'Periodo 2', general_average: 7.5, passed_areas: 7, failed_areas: 2, status: 'passed' },
-      { period_id: 'period-3', period_name: 'Periodo 3', general_average: 8.0, passed_areas: 8, failed_areas: 1, status: 'passed' },
-      { period_id: 'period-4', period_name: 'Periodo 4', general_average: 7.8, passed_areas: 8, failed_areas: 1, status: 'passed' },
-    ];
+  getStudentPeriodSummary: async (schoolYearId: string): Promise<StudentPeriodSummary[]> => {
+    const response = await api.get('/api/analytics/student/me/period-summary', {
+      params: {
+        school_year_id: assertObjectId(schoolYearId, 'school_year_id'),
+      },
+    });
+    return normalizeStudentPeriodSummary(unwrapPayload<StudentPeriodSummaryResponse>(response.data));
   },
   getStudentBulletin: async ({
     schoolYearId,
@@ -473,14 +284,6 @@ export const analyticsApi = {
       },
     });
     return response.data?.data ?? response.data;
-  },
-  getTeacherGroupsAnalytics: async () => {
-    await wait();
-    return teacherGroups;
-  },
-  getTeacherGroupAnalytics: async (groupId: string) => {
-    await wait();
-    return teacherGroups.find((group) => group.group_id === groupId) ?? teacherGroups[0];
   },
   getTeacherGroups: (schoolYearId: string) =>
     api.get('/api/analytics/teacher/me/groups', {

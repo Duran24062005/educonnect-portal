@@ -22,11 +22,12 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { normalizeRole } from '@/lib/auth';
 import LightweightCategoryChart from '@/components/charts/LightweightCategoryChart';
 import { useSchoolYears } from '@/hooks/useSchoolYears';
 import { useAdminDashboardSummary, useTeacherDashboardSummary } from '@/hooks/useDashboardSummary';
-import { analyticsApi, type StudentAreaMetric, type StudentOverview, type TeacherPerformanceLevel } from '@/api/analytics';
+import { analyticsApi, type StudentAreaMetric, type StudentOverview, type StudentPeriodSummary, type TeacherPerformanceLevel } from '@/api/analytics';
 import { activitiesApi, type Activity } from '@/api/activities';
 import { notificationsApi, type NotificationItem } from '@/api/notifications';
 import { Button } from '@/components/ui/button';
@@ -623,21 +624,38 @@ const getStudentActivityTone = (status?: string) => {
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
+  const { data: years = [], isLoading: yearsLoading } = useSchoolYears();
+  const activeYear = useMemo(
+    () => years.find((year: any) => year?.is_active) || years[0] || null,
+    [years]
+  );
+  const [selectedYearId, setSelectedYearId] = useState('');
   const [loading, setLoading] = useState(true);
   const [overview, setOverview] = useState<StudentOverview | null>(null);
   const [areas, setAreas] = useState<StudentAreaMetric[]>([]);
-  const [periods, setPeriods] = useState<any[]>([]);
+  const [periods, setPeriods] = useState<StudentPeriodSummary[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
   useEffect(() => {
+    if (activeYear?._id && !selectedYearId) {
+      setSelectedYearId(activeYear._id);
+    }
+  }, [activeYear?._id, selectedYearId]);
+
+  useEffect(() => {
     const load = async () => {
+      if (!selectedYearId) {
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       try {
         const [overviewData, areaData, periodData, activityData, notificationData] = await Promise.all([
-          analyticsApi.getStudentOverview(),
-          analyticsApi.getStudentAreas(),
-          analyticsApi.getStudentPeriodSummary(),
+          analyticsApi.getStudentOverview(selectedYearId),
+          analyticsApi.getStudentAreas(selectedYearId),
+          analyticsApi.getStudentPeriodSummary(selectedYearId),
           activitiesApi.getStudentActivities(),
           notificationsApi.list({ limit: 5 }),
         ]);
@@ -659,7 +677,9 @@ const StudentDashboard = () => {
     };
 
     void load();
-  }, []);
+  }, [selectedYearId]);
+
+  const isBusy = yearsLoading || loading;
 
   const pendingActivities = activities.filter((activity) => activity.student_state === 'pending' || activity.student_state === 'late');
   const gradedActivities = activities.filter((activity) => activity.student_state === 'graded');
@@ -717,7 +737,7 @@ const StudentDashboard = () => {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3">
-            {loading ? (
+            {isBusy ? (
               Array.from({ length: 3 }).map((_, index) => <Skeleton key={index} className="h-24 w-full rounded-2xl" />)
             ) : (
               [
@@ -733,13 +753,27 @@ const StudentDashboard = () => {
             )}
           </div>
         </div>
+        <div className="mt-6 flex justify-end">
+          <Select value={selectedYearId} onValueChange={setSelectedYearId}>
+            <SelectTrigger className="w-full max-w-xs bg-background/85">
+              <SelectValue placeholder="Selecciona año escolar" />
+            </SelectTrigger>
+            <SelectContent>
+              {years.map((year: any) => (
+                <SelectItem key={year._id} value={year._id}>
+                  {year.name || year.year}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Áreas aprobadas" value={overview?.passed_areas ?? 0} icon={GraduationCap} loading={loading} />
-        <StatCard title="Áreas en riesgo" value={overview?.failed_areas ?? 0} icon={AlertCircle} loading={loading} />
-        <StatCard title="Actividades por entregar" value={pendingActivities.length} icon={ClipboardList} loading={loading} />
-        <StatCard title="Actividades calificadas" value={gradedActivities.length} icon={CheckCircle2} loading={loading} />
+        <StatCard title="Áreas aprobadas" value={overview?.passed_areas ?? 0} icon={GraduationCap} loading={isBusy} />
+        <StatCard title="Áreas en riesgo" value={overview?.failed_areas ?? 0} icon={AlertCircle} loading={isBusy} />
+        <StatCard title="Actividades por entregar" value={pendingActivities.length} icon={ClipboardList} loading={isBusy} />
+        <StatCard title="Actividades calificadas" value={gradedActivities.length} icon={CheckCircle2} loading={isBusy} />
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.35fr_0.95fr]">
@@ -755,7 +789,7 @@ const StudentDashboard = () => {
             </Button>
           </CardHeader>
           <CardContent className="space-y-3">
-            {loading ? (
+            {isBusy ? (
               Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-24 w-full rounded-2xl" />)
             ) : nextActivities.length > 0 ? (
               nextActivities.map((activity) => {
@@ -806,7 +840,7 @@ const StudentDashboard = () => {
             </Button>
           </CardHeader>
           <CardContent className="space-y-3">
-            {loading ? (
+            {isBusy ? (
               Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-20 w-full rounded-2xl" />)
             ) : notifications.length > 0 ? (
               notifications.map((notification) => (
@@ -842,10 +876,12 @@ const StudentDashboard = () => {
             <p className="text-sm text-muted-foreground">Seguimiento rápido de promedio general y áreas en riesgo.</p>
           </CardHeader>
           <CardContent>
-            {loading ? (
+            {isBusy ? (
               <Skeleton className="h-80 w-full" />
-            ) : (
+            ) : periodCategories.length > 0 ? (
               <LightweightCategoryChart categories={periodCategories} series={periodSeries} height={300} />
+            ) : (
+              <p className="py-8 text-center text-muted-foreground">No hay periodos consolidados para este año escolar.</p>
             )}
           </CardContent>
         </Card>
@@ -862,7 +898,7 @@ const StudentDashboard = () => {
               </Button>
             </CardHeader>
             <CardContent>
-              {loading ? (
+              {isBusy ? (
                 <Skeleton className="h-52 w-full" />
               ) : bestAreas.length > 0 ? (
                 <LightweightCategoryChart categories={topAreaCategories} series={topAreaSeries} height={200} />
@@ -877,7 +913,7 @@ const StudentDashboard = () => {
               <CardTitle className="text-base">Tu foco esta semana</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {loading ? (
+              {isBusy ? (
                 Array.from({ length: 3 }).map((_, index) => <Skeleton key={index} className="h-14 w-full rounded-xl" />)
               ) : highlightedAreas.length > 0 ? (
                 highlightedAreas.map((area) => (
@@ -947,7 +983,7 @@ const StudentDashboard = () => {
             <CardTitle className="text-base">Resumen del último periodo</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {loading ? (
+            {isBusy ? (
               Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-12 w-full rounded-xl" />)
             ) : latestPeriod ? (
               <>
