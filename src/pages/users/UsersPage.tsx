@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { usersApi } from '@/api/users';
+import { usersApi, type AdminUserStatus } from '@/api/users';
 import { useUsers } from '@/hooks/useUsers';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -101,7 +101,7 @@ const UsersPage = () => {
     }
   };
 
-  const handleStatusChange = async (id: string, status: string) => {
+  const handleStatusChange = async (id: string, status: AdminUserStatus) => {
     try {
       await usersApi.changeStatus(id, status);
       toast.success('Estado actualizado');

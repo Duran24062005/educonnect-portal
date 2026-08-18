@@ -85,7 +85,11 @@ const GroupsPage = () => {
         const active = y.find((yr: any) => yr.is_active);
         if (active) setSelectedYear(active._id);
         else if (y.length > 0) setSelectedYear(y[0]._id);
-      } catch {} finally { setLoading(false); }
+      } catch {
+        toast.error('Error al cargar datos academicos');
+      } finally {
+        setLoading(false);
+      }
     };
     load();
   }, []);
