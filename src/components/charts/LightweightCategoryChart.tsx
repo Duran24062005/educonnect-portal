@@ -89,9 +89,10 @@ export const LightweightCategoryChart = ({
     if (!chartContainerRef.current || categories.length === 0 || series.length === 0) return;
 
     const container = chartContainerRef.current;
+    const containerWidth = Math.max(container.clientWidth, 1);
     const chart = createChart(container, {
       autoSize: false,
-      width: container.clientWidth,
+      width: containerWidth,
       height,
       layout: {
         background: { type: ColorType.Solid, color: 'transparent' },
@@ -194,14 +195,15 @@ export const LightweightCategoryChart = ({
         ${lines}
       `;
       tooltip.style.opacity = '1';
-      tooltip.style.left = `${Math.min(param.point.x + 16, container.clientWidth - 160)}px`;
+      const maxTooltipLeft = Math.max(container.clientWidth - 160, 8);
+      tooltip.style.left = `${Math.max(8, Math.min(param.point.x + 16, maxTooltipLeft))}px`;
       tooltip.style.top = `${Math.max(param.point.y - 24, 12)}px`;
     };
 
     chart.subscribeCrosshairMove(updateTooltip);
 
     const resizeObserver = new ResizeObserver(() => {
-      chart.applyOptions({ width: container.clientWidth, height });
+      chart.applyOptions({ width: Math.max(container.clientWidth, 1), height });
       chart.timeScale().fitContent();
     });
 
@@ -215,8 +217,13 @@ export const LightweightCategoryChart = ({
   }, [categories, height, series, themePalette, timeLabelMap]);
 
   return (
-    <div className="relative">
-      <div ref={chartContainerRef} className="w-full overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-b from-background to-muted/30 p-2" />
+    <div className="relative min-w-0 w-full">
+      <div
+        ref={chartContainerRef}
+        data-testid="lightweight-category-chart-plot"
+        className="box-border min-w-0 w-full max-w-full overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-b from-background to-muted/30 p-2"
+        style={{ height: `${height}px`, minHeight: `${height}px`, maxHeight: `${height}px` }}
+      />
       <div
         ref={tooltipRef}
         className="pointer-events-none absolute z-10 min-w-36 rounded-xl border border-border/70 bg-background/95 px-3 py-2 text-xs shadow-lg backdrop-blur transition-opacity"

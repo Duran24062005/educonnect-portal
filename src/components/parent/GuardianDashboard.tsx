@@ -289,12 +289,12 @@ const GuardianDashboard = () => {
                 </Card>
               </div>
 
-              <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
-                <Card>
+              <div className="grid min-w-0 gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+                <Card className="min-w-0 overflow-hidden">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-base"><BookOpen className="h-4 w-4" /> Rendimiento por área</CardTitle>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="min-w-0 overflow-hidden">
                     {selectedAreaCategories.length > 0 ? (
                       <LightweightCategoryChart categories={selectedAreaCategories} series={selectedAreaSeries} height={280} />
                     ) : (
