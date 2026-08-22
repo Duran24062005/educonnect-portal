@@ -49,3 +49,5 @@ Integracion optimizada actual:
 Hubo inconsistencias entre `_id` de `User` y `_id` de `Student` o `Teacher`.
 
 Antes de tocar este modulo, validar siempre que ID espera el backend.
+
+La administracion de matriculas permite seleccionar sede y jornada como referencias opcionales y descargar el padron CSV filtrado por ano y grupo.

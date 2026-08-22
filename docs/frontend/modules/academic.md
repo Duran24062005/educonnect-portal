@@ -20,6 +20,8 @@ Agrupa la configuracion institucional del ciclo academico.
 - `AulasManagementPage`
 - `PromotionsPage`
 
+`SchoolYearsPage` permite definir la escala SIEE inicial del año: mínimo, máximo y umbral de aprobación. `PeriodsPage` permite cerrar o reabrir periodos; mientras están cerrados el backend bloquea mutaciones de calificaciones.
+
 ## Dependencias de negocio
 
 Estas entidades alimentan despues:
@@ -29,6 +31,10 @@ Estas entidades alimentan despues:
 - matriculas
 - evaluaciones
 - analytics
+
+## Estructura institucional
+
+InstitutionStructurePage consume los catalogos tenant de sedes y jornadas. Permite alta, edicion y desactivacion logica. Las matriculas pueden usar esas referencias de forma opcional; el frontend no inventa compatibilidades que aun no esten definidas por la institucion.
 
 ## Regla de mantenimiento
 

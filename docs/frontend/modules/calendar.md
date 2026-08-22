@@ -6,7 +6,7 @@ El calendario muestra sesiones de clase concretas y puede operar con fixtures de
 
 ## Rutas
 
-- `/calendar`: vista semanal y agenda para `admin`, `teacher` y `student`.
+- `/calendar`: vista semanal y agenda para `admin`, `teacher`, `student` y `parent`.
 - `/dashboard`: el dashboard del estudiante incluye la próxima clase.
 
 ## Capas
@@ -29,11 +29,26 @@ El proveedor API usa `/api/calendar/catalog`, `/api/calendar`, `/api/calendar/me
 
 El componente visual trabaja con `CalendarSession`, que usa nombres en `camelCase`. La normalización de respuestas backend con `snake_case` vive en `src/api/calendar.ts`.
 
+## Diagnóstico local
+
+La ruta `/calendar` es privada. El portal primero valida el token con `GET /api/auth/me`; una sesión ausente, expirada o revocada produce una redirección a `/login` antes de montar la pantalla.
+
+Para validar el proveedor visual demo sin depender de los endpoints de calendario:
+
+```bash
+VITE_CALENDAR_DATA_SOURCE=demo yarn dev --host 127.0.0.1 --port 3000
+```
+
+El modo demo no elimina la autenticación global: la ruta sigue requiriendo un usuario válido porque `/calendar` es privada. La cobertura aislada de `CalendarPage` permite probar el renderizado sin una sesión real.
+
+Para validar la integración persistente, el backend debe estar disponible en `VITE_API_URL`, el usuario debe tener un perfil completo y el token debe conservar permisos sobre el rol consultado. Un error de catálogo o sesiones muestra el estado `No se pudo cargar el calendario`; `Reintentar` vuelve a consultar ambas fuentes.
+
 ## Permisos demo
 
 - `student`: consulta las sesiones del grupo demo `7A`; no edita.
 - `teacher`: consulta y edita sesiones del docente demo `Daniel Vargas`.
 - `admin`: consulta todas las sesiones y puede crear, editar, cancelar y filtrar.
+- `parent`: consulta únicamente sesiones de grupos con estudiantes vinculados y matrícula activa; no puede editar.
 
 Estos identificadores son únicamente fixtures. La API debe resolver el alcance por matrícula y asignación docente, no por estos valores.
 
