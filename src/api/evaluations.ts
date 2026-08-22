@@ -1,5 +1,4 @@
 import api from './axios';
-import { createClientError } from '@/lib/http';
 import { assertObjectId } from '@/lib/object-id';
 
 export const evaluationsApi = {
@@ -17,11 +16,6 @@ export const evaluationsApi = {
 
   // Scores
   createScore: (data: { student_id: string; grade_item_id: string; score: number }) => {
-    if (data.score < 0 || data.score > 10) {
-      throw createClientError('Invalid request input', [
-        { location: 'body', path: ['score'], message: 'score must be between 0 and 10' },
-      ]);
-    }
     return api.post('/api/evaluations/scores', data);
   },
   getStudentScores: (studentId: string) => api.get(`/api/evaluations/scores/student/${assertObjectId(studentId, 'student_id')}`),

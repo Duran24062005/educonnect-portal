@@ -15,6 +15,8 @@ import {
   GitMerge,
   FileText,
   Bell,
+  FileUp,
+  MapPinned,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
@@ -38,11 +40,14 @@ const adminItems = [
   { title: 'Notificaciones', url: '/notifications', icon: Bell },
   { title: 'Usuarios', url: '/users', icon: Users },
   { title: 'Pendientes', url: '/users/pending', icon: UserCheck },
+  { title: 'Importaciones', url: '/imports', icon: FileUp },
+  { title: 'Sedes y jornadas', url: '/institution/structure', icon: MapPinned },
 ];
 
 const academicItems = [
   { title: 'Años Escolares', url: '/academic/school-years', icon: Calendar },
   { title: 'Calendario', url: '/calendar', icon: CalendarDays },
+  { title: 'Asistencia', url: '/attendance', icon: ClipboardList },
   { title: 'Periodos', url: '/academic/periods', icon: Timer },
   { title: 'Grados', url: '/academic/grades', icon: Layers },
   { title: 'Áreas', url: '/academic/areas', icon: BookOpen },
@@ -60,6 +65,7 @@ const teacherItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
   { title: 'Notificaciones', url: '/notifications', icon: Bell },
   { title: 'Calendario', url: '/calendar', icon: CalendarDays },
+  { title: 'Asistencia', url: '/attendance', icon: ClipboardList },
   { title: 'Mis Grupos', url: '/my-groups', icon: School },
   { title: 'Resultados', url: '/period-results', icon: BarChart3 },
 ];
@@ -72,6 +78,13 @@ const studentItems = [
   { title: 'Mis Calificaciones', url: '/my-grades', icon: ClipboardList },
   { title: 'Mis Resultados', url: '/my-results', icon: BarChart3 },
   { title: 'Mis Boletines', url: '/my-bulletins', icon: FileText },
+];
+
+const guardianItems = [
+  { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
+  { title: 'Boletines', url: '/family/bulletins', icon: FileText },
+  { title: 'Calendario', url: '/calendar', icon: CalendarDays },
+  { title: 'Notificaciones', url: '/notifications', icon: Bell },
 ];
 
 export function AppSidebar() {
@@ -143,6 +156,7 @@ export function AppSidebar() {
         )}
         {role === 'teacher' && renderGroup('Docente', teacherItems)}
         {role === 'student' && renderGroup('Estudiante', studentItems)}
+        {role === 'parent' && renderGroup('Familia', guardianItems)}
       </SidebarContent>
     </Sidebar>
   );

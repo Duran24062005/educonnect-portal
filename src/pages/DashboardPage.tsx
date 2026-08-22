@@ -33,6 +33,7 @@ import { notificationsApi, type NotificationItem } from '@/api/notifications';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import StudentNextClassCard from '@/components/calendar/StudentNextClassCard';
+import GuardianDashboard from '@/components/parent/GuardianDashboard';
 
 const StatCard = ({
   title,
@@ -1047,6 +1048,8 @@ const DashboardPage = () => {
         return <TeacherDashboard />;
       case 'student':
         return <StudentDashboard />;
+      case 'parent':
+        return <GuardianDashboard />;
       default:
         return <PendingDashboard />;
     }

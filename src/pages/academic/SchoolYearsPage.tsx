@@ -34,7 +34,7 @@ const SchoolYearsPage = () => {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [newYear, setNewYear] = useState({ year: '', start_date: '', end_date: '' });
+  const [newYear, setNewYear] = useState({ year: '', start_date: '', end_date: '', min_score: '0', max_score: '10', passing_score: '6' });
 
   const fetchYears = async () => {
     setLoading(true);
@@ -78,14 +78,23 @@ const SchoolYearsPage = () => {
 
     setCreating(true);
     try {
+      const minScore = Number(newYear.min_score);
+      const maxScore = Number(newYear.max_score);
+      const passingScore = Number(newYear.passing_score);
+      if (!Number.isFinite(minScore) || !Number.isFinite(maxScore) || !Number.isFinite(passingScore) || minScore < 0 || maxScore > 100 || minScore >= maxScore || passingScore < minScore || passingScore > maxScore) {
+        toast.error('La escala debe tener mínimo, máximo y aprobación válidos');
+        return;
+      }
+
       await academicApi.createSchoolYear({
         year: parsedYear,
         start_date: newYear.start_date,
         end_date: newYear.end_date,
+        grading_policy: { min_score: minScore, max_score: maxScore, passing_score: passingScore },
       });
       toast.success('Año escolar creado');
       setDialogOpen(false);
-      setNewYear({ year: '', start_date: '', end_date: '' });
+      setNewYear({ year: '', start_date: '', end_date: '', min_score: '0', max_score: '10', passing_score: '6' });
       fetchYears();
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Error al crear');
@@ -159,6 +168,14 @@ const SchoolYearsPage = () => {
                     />
                   </div>
                 </div>
+                <div className="space-y-2 rounded-md border p-3">
+                  <p className="text-sm font-medium">Escala SIEE</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="space-y-1"><Label className="text-xs">Mínimo</Label><Input type="number" value={newYear.min_score} onChange={(e) => setNewYear({ ...newYear, min_score: e.target.value })} /></div>
+                    <div className="space-y-1"><Label className="text-xs">Máximo</Label><Input type="number" value={newYear.max_score} onChange={(e) => setNewYear({ ...newYear, max_score: e.target.value })} /></div>
+                    <div className="space-y-1"><Label className="text-xs">Aprobación</Label><Input type="number" value={newYear.passing_score} onChange={(e) => setNewYear({ ...newYear, passing_score: e.target.value })} /></div>
+                  </div>
+                </div>
                 <Button onClick={handleCreate} className="w-full" disabled={creating}>
                   {creating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                   Crear
@@ -176,6 +193,7 @@ const SchoolYearsPage = () => {
                   <TableRow>
                     <TableHead>Nombre</TableHead>
                     <TableHead>Estado</TableHead>
+                    <TableHead>Escala</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -190,7 +208,7 @@ const SchoolYearsPage = () => {
                     ))
                   ) : years.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                      <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
                         No hay años escolares registrados
                       </TableCell>
                     </TableRow>
@@ -202,6 +220,9 @@ const SchoolYearsPage = () => {
                           <Badge variant={y.is_active ? 'default' : 'secondary'}>
                             {y.is_active ? 'Activo' : 'Inactivo'}
                           </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {y.grading_policy?.min_score ?? 0} - {y.grading_policy?.max_score ?? 10} · aprueba {y.grading_policy?.passing_score ?? 6}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">

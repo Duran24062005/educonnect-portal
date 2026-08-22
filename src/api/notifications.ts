@@ -12,7 +12,7 @@ export interface NotificationItem {
   type: NotificationType;
   title: string;
   message: string;
-  audience_role: 'admin' | 'teacher' | 'student';
+  audience_role: 'admin' | 'teacher' | 'student' | 'parent';
   is_read: boolean;
   read_at: string | null;
   created_at: string;
@@ -51,7 +51,7 @@ export const notificationsApi = {
     const response = await api.patch('/api/notifications/me/read-all');
     return unwrap<{ updated_count: number }>(response);
   },
-  createAdminAnnouncement: async (payload: { title: string; message: string; target_role: 'admin' | 'teacher' | 'student' | 'teacher_student' | 'teacher_admin' | 'all' }) => {
+  createAdminAnnouncement: async (payload: { title: string; message: string; target_role: 'admin' | 'teacher' | 'student' | 'parent' | 'teacher_student' | 'teacher_admin' | 'all' }) => {
     const response = await api.post('/api/notifications/admin/announcements', payload);
     return unwrap<{ created_count: number }>(response);
   },

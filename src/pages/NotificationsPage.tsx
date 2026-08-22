@@ -99,7 +99,7 @@ const NotificationsPage = () => {
   const [filter, setFilter] = useState<'all' | 'unread' | 'read'>('all');
   const [adminTitle, setAdminTitle] = useState('');
   const [adminMessage, setAdminMessage] = useState('');
-  const [targetRole, setTargetRole] = useState<'admin' | 'teacher' | 'student' | 'teacher_student' | 'teacher_admin' | 'all'>('teacher');
+  const [targetRole, setTargetRole] = useState<'admin' | 'teacher' | 'student' | 'parent' | 'teacher_student' | 'teacher_admin' | 'all'>('teacher');
   const [teacherTitle, setTeacherTitle] = useState('');
   const [teacherMessage, setTeacherMessage] = useState('');
   const [teacherScope, setTeacherScope] = useState<'all_my_students' | 'group'>('all_my_students');
@@ -264,7 +264,7 @@ const NotificationsPage = () => {
                   </div>
                   <div className="space-y-2">
                     <Label>Enviar a</Label>
-                    <Select value={targetRole} onValueChange={(value: 'admin' | 'teacher' | 'student' | 'teacher_student' | 'teacher_admin' | 'all') => setTargetRole(value)}>
+                    <Select value={targetRole} onValueChange={(value: 'admin' | 'teacher' | 'student' | 'parent' | 'teacher_student' | 'teacher_admin' | 'all') => setTargetRole(value)}>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecciona el rol destinatario" />
                       </SelectTrigger>
@@ -272,6 +272,7 @@ const NotificationsPage = () => {
                         <SelectItem value="admin">Solo admins</SelectItem>
                         <SelectItem value="teacher">Solo docentes</SelectItem>
                         <SelectItem value="student">Solo estudiantes</SelectItem>
+                        <SelectItem value="parent">Solo acudientes</SelectItem>
                         <SelectItem value="teacher_student">Docentes y estudiantes</SelectItem>
                         <SelectItem value="teacher_admin">Docentes y admins</SelectItem>
                         <SelectItem value="all">Todos</SelectItem>

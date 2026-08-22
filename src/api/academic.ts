@@ -31,6 +31,7 @@ export const academicApi = {
   getPeriods: (yearId: string) => api.get(`/api/academic/school-years/${assertObjectId(yearId, 'school_year_id')}/periods`),
   createPeriod: (data: CreatePeriodPayload) => api.post('/api/academic/periods', data),
   deletePeriod: (id: string) => api.delete(`/api/academic/periods/${assertObjectId(id, 'id')}`),
+  updatePeriodStatus: (id: string, status: 'open' | 'closed') => api.patch(`/api/academic/periods/${assertObjectId(id, 'id')}/status`, { status }),
 
   // Grades
   getGrades: () => api.get('/api/academic/grades'),

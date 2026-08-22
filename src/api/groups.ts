@@ -12,6 +12,8 @@ export interface CreateEnrollmentPayload {
   student_id: string;
   group_id: string;
   school_year_id: string;
+  campus_id?: string;
+  shift_id?: string;
 }
 
 export interface TransferEnrollmentPayload {
@@ -20,6 +22,8 @@ export interface TransferEnrollmentPayload {
   to_group_id: string;
   reason?: string;
   observations?: string;
+  campus_id?: string;
+  shift_id?: string;
 }
 
 export type EnrollmentStatus = 'active' | 'transferred' | 'retired';
@@ -41,6 +45,14 @@ export const groupsApi = {
   getStudentEnrollments: (studentId: string) => api.get(`/api/groups/enrollments/student/${assertObjectId(studentId, 'student_id')}`),
 
   // Teachers
+  downloadEnrollmentReport: (schoolYearId: string, groupId?: string) =>
+    api.get('/api/groups/reports/enrollments.csv', {
+      params: {
+        school_year_id: assertObjectId(schoolYearId, 'school_year_id'),
+        group_id: groupId ? assertObjectId(groupId, 'group_id') : undefined,
+      },
+      responseType: 'blob',
+    }),
   assignTeacher: (data: { teacher_id: string; group_id: string; area_id: string }) =>
     api.post('/api/groups/teachers/assign', data),
   getGroupTeachers: (groupId: string) => api.get(`/api/groups/${assertObjectId(groupId, 'group_id')}/teachers`),

@@ -5,6 +5,7 @@ import { normalizeRole, normalizeStatus } from '@/lib/auth';
 export interface User {
   _id: string;
   email: string;
+  institution_id?: string | { _id?: string } | null;
   role?: string;
   status?: string;
   profile_complete?: boolean;

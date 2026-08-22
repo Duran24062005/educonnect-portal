@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Loader2, Lock, Unlock } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -163,6 +163,17 @@ const PeriodsPage = () => {
     }
   };
 
+  const handleStatus = async (period: any) => {
+    const nextStatus = period.status === 'closed' ? 'open' : 'closed';
+    try {
+      await academicApi.updatePeriodStatus(period._id, nextStatus);
+      toast.success(nextStatus === 'closed' ? 'Periodo cerrado' : 'Periodo reabierto');
+      await loadPeriods(selectedYear);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'No se pudo actualizar el periodo');
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -264,14 +275,12 @@ const PeriodsPage = () => {
                     <CardContent className="pt-6 space-y-3">
                       <div className="flex items-center justify-between gap-2">
                         <h3 className="font-semibold">{period.name || period.title}</h3>
-                        <Badge variant="outline">
-                          Peso: {typeof period.weight === 'number' ? period.weight : Number(period.weight || 0)}
-                        </Badge>
+                        <div className="flex items-center gap-2"><Badge variant={period.status === 'closed' ? 'secondary' : 'outline'}>{period.status === 'closed' ? 'Cerrado' : 'Abierto'}</Badge><Badge variant="outline">Peso: {typeof period.weight === 'number' ? period.weight : Number(period.weight || 0)}</Badge></div>
                       </div>
                       <p className="text-sm text-muted-foreground">
                         {period.start_date ? new Date(period.start_date).toLocaleDateString() : 'Sin fecha'} - {period.end_date ? new Date(period.end_date).toLocaleDateString() : 'Sin fecha'}
                       </p>
-                      <AlertDialog>
+                      <div className="flex items-center gap-3"><Button variant="outline" size="sm" onClick={() => handleStatus(period)} title={period.status === 'closed' ? 'Reabrir periodo' : 'Cerrar periodo'}>{period.status === 'closed' ? <Unlock className="w-4 h-4 mr-2" /> : <Lock className="w-4 h-4 mr-2" />}{period.status === 'closed' ? 'Reabrir' : 'Cerrar'}</Button><AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button variant="ghost" size="sm" className="text-destructive px-0">
                             <Trash2 className="w-4 h-4 mr-2" /> Eliminar
@@ -291,7 +300,7 @@ const PeriodsPage = () => {
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
-                      </AlertDialog>
+                      </AlertDialog></div>
                     </CardContent>
                   </Card>
                 ))}

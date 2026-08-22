@@ -50,7 +50,7 @@ const initialFilters: CalendarFilters = {
 const CalendarPage = () => {
   const user = useAuthStore((state) => state.user);
   const rawRole = normalizeRole(user?.role);
-  const role: CalendarRole = rawRole === 'admin' || rawRole === 'teacher' ? rawRole : 'student';
+  const role: CalendarRole = rawRole === 'admin' || rawRole === 'teacher' || rawRole === 'parent' ? rawRole : 'student';
   const queryClient = useQueryClient();
   const [referenceDate, setReferenceDate] = useState(new Date());
   const [schoolYearId, setSchoolYearId] = useState('');
@@ -128,6 +128,11 @@ const CalendarPage = () => {
   const hasFilters = Object.values(filters).some(Boolean);
   const canEditSession = (session: CalendarSession | null) => Boolean(session && (role === 'admin' || role === 'teacher'));
 
+  const retryCalendar = () => {
+    void catalogQuery.refetch();
+    void calendarQuery.refetch();
+  };
+
   const openCreate = () => {
     setSelectedSession(null);
     setDialogOpen(true);
@@ -168,7 +173,7 @@ const CalendarPage = () => {
               Consulta las clases de la semana, sus responsables y los temas que siguen en agenda.
             </p>
           </div>
-          {role !== 'student' && (
+          {(role === 'admin' || role === 'teacher') && (
             <Button onClick={openCreate} disabled={catalogQuery.isLoading || catalog.groups.length === 0} className="w-full sm:w-auto">
               <Plus className="h-4 w-4" />Nueva sesión
             </Button>
@@ -213,7 +218,7 @@ const CalendarPage = () => {
               <Filter className="h-4 w-4 text-primary" />Filtros del administrador
             </div>
           )}
-          {role !== 'student' && (
+          {(role === 'admin' || role === 'teacher') && (
             <div className="mt-3 grid gap-3 border-t border-border/60 pt-4 sm:grid-cols-2 xl:grid-cols-5">
               {role === 'admin' && (
                 <FilterSelect label="Grado" value={filters.gradeId} options={catalog.grades} onChange={(value) => setFilter('gradeId', value)} />
@@ -238,7 +243,7 @@ const CalendarPage = () => {
             <SlidersHorizontal className="h-8 w-8 text-destructive" />
             <h2 className="mt-4 font-display text-lg font-bold">No se pudo cargar el calendario</h2>
             <p className="mt-2 max-w-md text-sm text-muted-foreground">Revisa la conexión o vuelve a intentarlo.</p>
-            <Button variant="outline" className="mt-5" onClick={() => calendarQuery.refetch()}>Reintentar</Button>
+            <Button variant="outline" className="mt-5" onClick={retryCalendar}>Reintentar</Button>
           </div>
         ) : (
           <div className="grid gap-6 2xl:grid-cols-[minmax(0,1fr)_300px]">
@@ -311,18 +316,20 @@ const CalendarPage = () => {
         )}
       </div>
 
-      <CalendarSessionDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        session={selectedSession}
-        role={role}
-        catalog={catalog}
-        schoolYearId={schoolYearId}
-        canEdit={canEditSession(selectedSession)}
-        onSave={handleSave}
-        onCancelSession={handleCancel}
-        onActivateSession={handleActivate}
-      />
+      {dialogOpen && (
+        <CalendarSessionDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          session={selectedSession}
+          role={role}
+          catalog={catalog}
+          schoolYearId={schoolYearId}
+          canEdit={canEditSession(selectedSession)}
+          onSave={handleSave}
+          onCancelSession={handleCancel}
+          onActivateSession={handleActivate}
+        />
+      )}
     </DashboardLayout>
   );
 };

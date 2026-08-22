@@ -1,7 +1,7 @@
 import api from './axios';
 import { calendarDemoCatalog, calendarDemoSource } from './calendarDemo';
 
-export type CalendarRole = 'admin' | 'teacher' | 'student';
+export type CalendarRole = 'admin' | 'teacher' | 'student' | 'parent';
 export type CalendarSessionStatus = 'scheduled' | 'cancelled';
 export type CalendarActivityStatus = 'pending' | 'overdue' | 'submitted';
 

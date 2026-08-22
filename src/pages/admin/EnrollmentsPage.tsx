@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -10,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { ArrowRightLeft, Loader2, RefreshCcw, UserPlus } from 'lucide-react';
+import { ArrowRightLeft, Download, Loader2, RefreshCcw, UserPlus } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -31,6 +32,9 @@ import {
   useUpdateEnrollmentStatus,
 } from '@/hooks/admin/useAdminEnrollments';
 import { useAdminAulas } from '@/hooks/admin/useAdminAulas';
+import { institutionApi } from '@/api/institution';
+import { groupsApi } from '@/api/groups';
+import { useAuthStore } from '@/store/auth';
 
 const ENROLLMENT_STATUSES = ['active', 'transferred', 'retired'] as const;
 
@@ -96,6 +100,7 @@ const getSchoolYearLabel = (entry: any) => {
 };
 
 const EnrollmentsPage = () => {
+  const hasInstitutionContext = useAuthStore((state) => Boolean(state.user?.institution_id));
   const {
     enrollmentYearId,
     selectedGroupId,
@@ -112,12 +117,27 @@ const EnrollmentsPage = () => {
     observations: '',
   });
   const [aulaSelections, setAulaSelections] = useState<Record<string, string>>({});
+  const [selectedCampusId, setSelectedCampusId] = useState('none');
+  const [selectedShiftId, setSelectedShiftId] = useState('none');
+  const [exportingReport, setExportingReport] = useState(false);
 
   const { data: years = [], isLoading: loadingYears } = useAdminSchoolYears();
   const { data: groups = [], isLoading: loadingGroups } = useAdminGroupsByYear(enrollmentYearId);
   const { data: grades = [] } = useAdminGrades();
   const { data: students = [], isLoading: loadingStudents } = useAdminStudents();
   const { data: aulas = [] } = useAdminAulas();
+  const { data: campuses = [] } = useQuery({
+    queryKey: ['admin', 'institution', 'campuses'],
+    queryFn: async () => (await institutionApi.getCampuses()).data?.data ?? [],
+    enabled: hasInstitutionContext,
+    staleTime: 60_000,
+  });
+  const { data: shifts = [] } = useQuery({
+    queryKey: ['admin', 'institution', 'shifts'],
+    queryFn: async () => (await institutionApi.getShifts()).data?.data ?? [],
+    enabled: hasInstitutionContext,
+    staleTime: 60_000,
+  });
 
   const { data: groupStudents = [], isLoading: loadingGroupStudents, refetch: refetchGroupStudents } = useGroupStudents(selectedGroupId);
   const { data: studentEnrollments = [], isLoading: loadingStudentEnrollments, refetch: refetchStudentEnrollments } = useStudentEnrollments(selectedStudentId);
@@ -179,6 +199,8 @@ const EnrollmentsPage = () => {
         student_id: selectedStudentId,
         group_id: selectedGroupId,
         school_year_id: enrollmentYearId,
+        campus_id: selectedCampusId === 'none' ? undefined : selectedCampusId,
+        shift_id: selectedShiftId === 'none' ? undefined : selectedShiftId,
       });
       toast.success('Matrícula creada');
       refetchGroupStudents();
@@ -189,6 +211,25 @@ const EnrollmentsPage = () => {
         return;
       }
       toast.error(getBackendMessage(err, 'No se pudo crear la matrícula'));
+    }
+  };
+
+  const onExportReport = async () => {
+    if (!enrollmentYearId) return;
+    setExportingReport(true);
+    try {
+      const response = await groupsApi.downloadEnrollmentReport(enrollmentYearId, selectedGroupId || undefined);
+      const url = URL.createObjectURL(response.data);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = 'reporte-matriculas.csv';
+      anchor.click();
+      URL.revokeObjectURL(url);
+      toast.success('Reporte de matrículas descargado');
+    } catch (err: any) {
+      toast.error(getBackendMessage(err, 'No se pudo descargar el reporte'));
+    } finally {
+      setExportingReport(false);
     }
   };
 
@@ -224,6 +265,8 @@ const EnrollmentsPage = () => {
         to_group_id: transferForm.to_group_id,
         reason: transferForm.reason || undefined,
         observations: transferForm.observations || undefined,
+        campus_id: selectedCampusId === 'none' ? undefined : selectedCampusId,
+        shift_id: selectedShiftId === 'none' ? undefined : selectedShiftId,
       });
       toast.success('Traslado realizado correctamente');
       setTransferOpen(false);
@@ -255,16 +298,21 @@ const EnrollmentsPage = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-display font-bold">Matrículas y Traslados</h1>
-          <p className="text-muted-foreground">Gestiona matrículas, estado, traslados y aula por estudiante.</p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-display font-bold">Matrículas y Traslados</h1>
+            <p className="text-muted-foreground">Gestiona matrículas, estado, traslados y aula por estudiante.</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={onExportReport} disabled={exportingReport || !enrollmentYearId}>
+            <Download className="w-4 h-4 mr-2" />{exportingReport ? 'Descargando' : 'Exportar CSV'}
+          </Button>
         </div>
 
         <Card>
           <CardHeader>
             <CardTitle>Crear matrícula</CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 lg:grid-cols-[1fr_1fr_1fr_auto] gap-3 items-end">
+          <CardContent className="grid grid-cols-1 lg:grid-cols-[1fr_1fr_1fr_1fr_1fr_auto] gap-3 items-end">
             <div className="space-y-2">
               <Label>Año escolar</Label>
               <Select value={enrollmentYearId} onValueChange={setEnrollmentYearId}>
@@ -314,6 +362,32 @@ const EnrollmentsPage = () => {
                       No hay estudiantes con perfil academico disponible
                     </div>
                   )}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Sede <span className="text-muted-foreground">(opcional)</span></Label>
+              <Select value={selectedCampusId} onValueChange={setSelectedCampusId}>
+                <SelectTrigger><SelectValue placeholder="Sin sede" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sin sede</SelectItem>
+                  {campuses.filter((campus: any) => campus.status === 'active').map((campus: any) => (
+                    <SelectItem key={campus._id} value={campus._id}>{campus.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Jornada <span className="text-muted-foreground">(opcional)</span></Label>
+              <Select value={selectedShiftId} onValueChange={setSelectedShiftId}>
+                <SelectTrigger><SelectValue placeholder="Sin jornada" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sin jornada</SelectItem>
+                  {shifts.filter((shift: any) => shift.status === 'active').map((shift: any) => (
+                    <SelectItem key={shift._id} value={shift._id}>{shift.name} · {shift.start_time}-{shift.end_time}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

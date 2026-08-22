@@ -30,6 +30,9 @@ import PromotionsPage from './pages/admin/PromotionsPage';
 import AulasManagementPage from './pages/admin/AulasManagementPage';
 import ProfilePage from './pages/ProfilePage';
 import NotFound from "./pages/NotFound";
+import AttendancePage from './pages/AttendancePage';
+import ImportsPage from './pages/admin/ImportsPage';
+import InstitutionStructurePage from './pages/admin/InstitutionStructurePage';
 
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const GroupDetailPage = lazy(() => import('./pages/groups/GroupDetailPage'));
@@ -46,6 +49,7 @@ const StudentActivityDetailPage = lazy(() => import('./pages/student/StudentActi
 const EvaluationStatsPage = lazy(() => import('./pages/EvaluationStatsPage'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 const CalendarPage = lazy(() => import('./pages/CalendarPage'));
+const GuardianBulletinPage = lazy(() => import('./pages/guardian/GuardianBulletinPage'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -100,11 +104,15 @@ const App = () => (
                 <Route path="/dashboard" element={<ProfileCompleteGuard><DashboardPage /></ProfileCompleteGuard>} />
                 <Route path="/profile" element={<ProfileCompleteGuard><ProfilePage /></ProfileCompleteGuard>} />
                 <Route path="/notifications" element={<ProfileCompleteGuard><NotificationsPage /></ProfileCompleteGuard>} />
-                <Route path="/calendar" element={<ProfileCompleteGuard><RoleRoute roles={['admin', 'teacher', 'student']}><CalendarPage /></RoleRoute></ProfileCompleteGuard>} />
+                <Route path="/family/bulletins" element={<ProfileCompleteGuard><RoleRoute roles={['parent']}><GuardianBulletinPage /></RoleRoute></ProfileCompleteGuard>} />
+                <Route path="/calendar" element={<ProfileCompleteGuard><RoleRoute roles={['admin', 'teacher', 'student', 'parent']}><CalendarPage /></RoleRoute></ProfileCompleteGuard>} />
+                <Route path="/attendance" element={<ProfileCompleteGuard><RoleRoute roles={['admin', 'teacher']}><AttendancePage /></RoleRoute></ProfileCompleteGuard>} />
 
                 {/* Admin routes */}
                 <Route path="/users" element={<ProfileCompleteGuard><RoleRoute roles={['admin']}><UsersPage /></RoleRoute></ProfileCompleteGuard>} />
                 <Route path="/users/pending" element={<ProfileCompleteGuard><RoleRoute roles={['admin']}><PendingUsersPage /></RoleRoute></ProfileCompleteGuard>} />
+                <Route path="/imports" element={<ProfileCompleteGuard><RoleRoute roles={['admin']}><ImportsPage /></RoleRoute></ProfileCompleteGuard>} />
+                <Route path="/institution/structure" element={<ProfileCompleteGuard><RoleRoute roles={['admin']}><InstitutionStructurePage /></RoleRoute></ProfileCompleteGuard>} />
                 <Route path="/academic/school-years" element={<ProfileCompleteGuard><RoleRoute roles={['admin']}><SchoolYearsPage /></RoleRoute></ProfileCompleteGuard>} />
                 <Route path="/academic/periods" element={<ProfileCompleteGuard><RoleRoute roles={['admin']}><PeriodsPage /></RoleRoute></ProfileCompleteGuard>} />
                 <Route path="/academic/grades" element={<ProfileCompleteGuard><RoleRoute roles={['admin']}><GradesPage /></RoleRoute></ProfileCompleteGuard>} />

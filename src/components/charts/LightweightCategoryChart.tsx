@@ -90,7 +90,8 @@ export const LightweightCategoryChart = ({
 
     const container = chartContainerRef.current;
     const chart = createChart(container, {
-      autoSize: true,
+      autoSize: false,
+      width: container.clientWidth,
       height,
       layout: {
         background: { type: ColorType.Solid, color: 'transparent' },

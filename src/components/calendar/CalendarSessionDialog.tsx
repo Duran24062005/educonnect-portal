@@ -36,25 +36,18 @@ interface FormState {
 }
 
 const toFormState = (session: CalendarSession | null, catalog: CalendarCatalog): FormState => {
-  const source = session || {
-    startAt: new Date().toISOString(),
-    endAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-    group: catalog.groups[0],
-    area: catalog.areas[0],
-    teacher: catalog.teachers[0],
-    aula: catalog.aulas[0],
-    topic: '',
-  } as CalendarSession;
+  const startAt = session?.startAt ?? new Date().toISOString();
+  const endAt = session?.endAt ?? new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
   return {
-    date: format(parseISO(source.startAt), 'yyyy-MM-dd'),
-    startTime: format(parseISO(source.startAt), 'HH:mm'),
-    endTime: format(parseISO(source.endAt), 'HH:mm'),
-    groupId: source.group.id,
-    areaId: source.area.id,
-    teacherId: source.teacher.id,
-    aulaId: source.aula.id,
-    topic: source.topic,
+    date: format(parseISO(startAt), 'yyyy-MM-dd'),
+    startTime: format(parseISO(startAt), 'HH:mm'),
+    endTime: format(parseISO(endAt), 'HH:mm'),
+    groupId: session?.group?.id ?? catalog.groups[0]?.id ?? '',
+    areaId: session?.area?.id ?? catalog.areas[0]?.id ?? '',
+    teacherId: session?.teacher?.id ?? catalog.teachers[0]?.id ?? '',
+    aulaId: session?.aula?.id ?? catalog.aulas[0]?.id ?? '',
+    topic: session?.topic ?? '',
   };
 };
 
@@ -86,7 +79,7 @@ const CalendarSessionDialog = ({
     }
   }, [open, session, catalog, isCreating]);
 
-  const title = isCreating ? 'Nueva sesión' : editing ? 'Editar sesión' : session.area.name;
+  const title = isCreating ? 'Nueva sesión' : editing ? 'Editar sesión' : session?.area?.name || 'Detalle de sesión';
   const availableGroups = useMemo(() => catalog.groups, [catalog.groups]);
 
   const updateField = (key: keyof FormState, value: string) => {
