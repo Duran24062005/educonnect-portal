@@ -214,6 +214,10 @@ let demoSessions = createDemoCalendarSeed();
 let nextDemoId = 100;
 
 export const calendarDemoSource = {
+  async catalog() {
+    return calendarDemoCatalog;
+  },
+
   async list(query: CalendarQuery): Promise<CalendarResponse> {
     const sessions = demoSessions
       .filter((session) => matchesQuery(session, query))

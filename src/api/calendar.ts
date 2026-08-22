@@ -1,5 +1,5 @@
 import api from './axios';
-import { calendarDemoSource } from './calendarDemo';
+import { calendarDemoCatalog, calendarDemoSource } from './calendarDemo';
 
 export type CalendarRole = 'admin' | 'teacher' | 'student';
 export type CalendarSessionStatus = 'scheduled' | 'cancelled';
@@ -76,6 +76,15 @@ export interface CalendarResponse {
   range: { from: string; to: string };
 }
 
+export interface CalendarDataSource {
+  catalog(role: CalendarRole, schoolYearId?: string): Promise<CalendarCatalog>;
+  list(query: CalendarQuery): Promise<CalendarResponse>;
+  create(input: CalendarSessionInput): Promise<CalendarSession>;
+  update(id: string, input: CalendarSessionInput): Promise<CalendarSession>;
+  cancel(id: string): Promise<CalendarSession>;
+  activate(id: string): Promise<CalendarSession>;
+}
+
 export const CALENDAR_DATA_SOURCE = import.meta.env.VITE_CALENDAR_DATA_SOURCE === 'api' ? 'api' : 'demo';
 
 const unwrap = (response: any) => response?.data?.data ?? response?.data ?? response;
@@ -130,6 +139,22 @@ const normalizeResponse = (payload: any, query: CalendarQuery): CalendarResponse
   };
 };
 
+const normalizeCatalog = (payload: any): CalendarCatalog => {
+  const value = unwrap(payload);
+  const normalizeList = (items: any[] | undefined) => Array.isArray(items) ? items.map((item) => normalizeEntity(item)) : [];
+
+  return {
+    years: Array.isArray(value?.years)
+      ? value.years.map((item: any) => ({ ...normalizeEntity(item, 'Año escolar'), year: Number(item.year ?? 0) }))
+      : [],
+    grades: normalizeList(value?.grades),
+    groups: normalizeList(value?.groups),
+    areas: normalizeList(value?.areas),
+    teachers: normalizeList(value?.teachers),
+    aulas: normalizeList(value?.aulas),
+  };
+};
+
 const toParams = (query: CalendarQuery) => ({
   from: query.from,
   to: query.to,
@@ -152,7 +177,13 @@ const toPayload = (input: CalendarSessionInput) => ({
   topic: input.topic,
 });
 
-const apiSource = {
+const apiSource: CalendarDataSource = {
+  async catalog(role, schoolYearId) {
+    const response = await api.get('/api/calendar/catalog', {
+      params: { school_year_id: schoolYearId },
+    });
+    return normalizeCatalog(response);
+  },
   async list(query: CalendarQuery) {
     const endpoint = query.role === 'admin' ? '/api/calendar' : '/api/calendar/me';
     const response = await api.get(endpoint, { params: toParams(query) });
@@ -176,4 +207,18 @@ const apiSource = {
   },
 };
 
-export const calendarApi = CALENDAR_DATA_SOURCE === 'api' ? apiSource : calendarDemoSource;
+const demoSource: CalendarDataSource = {
+  ...calendarDemoSource,
+  async catalog(role) {
+    if (role !== 'teacher') return calendarDemoCatalog;
+    const teacher = calendarDemoCatalog.teachers.find((item) => item.id === 'teacher-001');
+    return {
+      ...calendarDemoCatalog,
+      teachers: teacher ? [teacher] : [],
+      groups: calendarDemoCatalog.groups.filter((item) => ['group-7a', 'group-8a'].includes(item.id)),
+      areas: calendarDemoCatalog.areas.filter((item) => item.id === 'area-math'),
+    };
+  },
+};
+
+export const calendarApi: CalendarDataSource = CALENDAR_DATA_SOURCE === 'api' ? apiSource : demoSource;

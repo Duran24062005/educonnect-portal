@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CalendarDays, ChevronLeft, ChevronRight, Filter, List, Plus, RotateCcw, SlidersHorizontal, X } from 'lucide-react';
 import { toast } from 'sonner';
@@ -13,14 +13,11 @@ import { useAuthStore } from '@/store/auth';
 import { normalizeRole } from '@/lib/auth';
 import {
   calendarApi,
-  CALENDAR_DATA_SOURCE,
-  type CalendarCatalog,
   type CalendarQuery,
   type CalendarRole,
   type CalendarSession,
   type CalendarSessionInput,
 } from '@/api/calendar';
-import { calendarDemoCatalog } from '@/api/calendarDemo';
 import CalendarAgenda from '@/components/calendar/CalendarAgenda';
 import CalendarSessionDialog from '@/components/calendar/CalendarSessionDialog';
 import CalendarWeekGrid from '@/components/calendar/CalendarWeekGrid';
@@ -56,18 +53,36 @@ const CalendarPage = () => {
   const role: CalendarRole = rawRole === 'admin' || rawRole === 'teacher' ? rawRole : 'student';
   const queryClient = useQueryClient();
   const [referenceDate, setReferenceDate] = useState(new Date());
-  const [schoolYearId, setSchoolYearId] = useState(calendarDemoCatalog.years[0]?.id || '');
+  const [schoolYearId, setSchoolYearId] = useState('');
   const [view, setView] = useState<CalendarView>('week');
   const [filters, setFilters] = useState<CalendarFilters>(initialFilters);
   const [selectedSession, setSelectedSession] = useState<CalendarSession | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const range = useMemo(() => getWeekQueryRange(referenceDate), [referenceDate]);
+  const catalogQuery = useQuery({
+    queryKey: ['calendar-catalog', role, schoolYearId],
+    queryFn: () => calendarApi.catalog(role, schoolYearId || undefined),
+    staleTime: 60_000,
+  });
+  const catalog = catalogQuery.data || {
+    years: [],
+    grades: [],
+    groups: [],
+    areas: [],
+    teachers: [],
+    aulas: [],
+  };
+
+  useEffect(() => {
+    if (!schoolYearId && catalog.years[0]?.id) setSchoolYearId(catalog.years[0].id);
+  }, [catalog.years, schoolYearId]);
+
   const query = useMemo<CalendarQuery>(() => ({
     role,
     from: range.from,
     to: range.to,
-    schoolYearId: CALENDAR_DATA_SOURCE === 'demo' ? schoolYearId || undefined : undefined,
+    schoolYearId: schoolYearId || undefined,
     gradeId: filters.gradeId || undefined,
     groupId: filters.groupId || undefined,
     areaId: filters.areaId || undefined,
@@ -108,21 +123,10 @@ const CalendarPage = () => {
     },
   });
 
-  const catalog = useMemo<CalendarCatalog>(() => {
-    if (role !== 'teacher') return calendarDemoCatalog;
-    const teacher = calendarDemoCatalog.teachers.find((item) => item.id === 'teacher-001');
-    return {
-      ...calendarDemoCatalog,
-      teachers: teacher ? [teacher] : [],
-      groups: calendarDemoCatalog.groups.filter((item) => ['group-7a', 'group-8a'].includes(item.id)),
-      areas: calendarDemoCatalog.areas.filter((item) => item.id === 'area-math'),
-    };
-  }, [role]);
-
   const sessions = calendarQuery.data?.sessions || [];
   const nextSession = getNextSession(sessions);
   const hasFilters = Object.values(filters).some(Boolean);
-  const canEditSession = (session: CalendarSession | null) => Boolean(session && (role === 'admin' || (role === 'teacher' && session.teacher.id === 'teacher-001')));
+  const canEditSession = (session: CalendarSession | null) => Boolean(session && (role === 'admin' || role === 'teacher'));
 
   const openCreate = () => {
     setSelectedSession(null);
@@ -165,7 +169,7 @@ const CalendarPage = () => {
             </p>
           </div>
           {role !== 'student' && (
-            <Button onClick={openCreate} className="w-full sm:w-auto">
+            <Button onClick={openCreate} disabled={catalogQuery.isLoading || catalog.groups.length === 0} className="w-full sm:w-auto">
               <Plus className="h-4 w-4" />Nueva sesión
             </Button>
           )}
@@ -192,7 +196,7 @@ const CalendarPage = () => {
               <label htmlFor="calendar-school-year" className="whitespace-nowrap text-xs font-medium text-muted-foreground">Año escolar</label>
               <Select value={schoolYearId} onValueChange={setSchoolYearId}>
                 <SelectTrigger id="calendar-school-year" className="w-[170px]"><SelectValue placeholder="Año escolar" /></SelectTrigger>
-                <SelectContent>{calendarDemoCatalog.years.map((year) => <SelectItem key={year.id} value={year.id}>{year.name}</SelectItem>)}</SelectContent>
+                <SelectContent>{catalog.years.map((year) => <SelectItem key={year.id} value={year.id}>{year.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
 
@@ -229,7 +233,7 @@ const CalendarPage = () => {
           )}
         </section>
 
-        {calendarQuery.isError ? (
+        {catalogQuery.isError || calendarQuery.isError ? (
           <div className="flex flex-col items-center justify-center rounded-xl border border-destructive/30 bg-destructive/5 px-6 py-16 text-center">
             <SlidersHorizontal className="h-8 w-8 text-destructive" />
             <h2 className="mt-4 font-display text-lg font-bold">No se pudo cargar el calendario</h2>
@@ -313,6 +317,7 @@ const CalendarPage = () => {
         session={selectedSession}
         role={role}
         catalog={catalog}
+        schoolYearId={schoolYearId}
         canEdit={canEditSession(selectedSession)}
         onSave={handleSave}
         onCancelSession={handleCancel}

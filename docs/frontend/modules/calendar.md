@@ -2,7 +2,7 @@
 
 ## Alcance
 
-El calendario demo muestra sesiones de clase concretas y está preparado para cambiar a la API sin modificar las vistas.
+El calendario muestra sesiones de clase concretas y puede operar con fixtures demo o con la API persistente sin modificar las vistas.
 
 ## Rutas
 
@@ -19,13 +19,13 @@ El calendario demo muestra sesiones de clase concretas y está preparado para ca
 
 ## Fuente de datos
 
-Por defecto se usa el proveedor demo. Para preparar la integración futura se puede establecer:
+Por defecto se usa el proveedor demo. Para usar la API persistente se puede establecer:
 
 ```bash
 VITE_CALENDAR_DATA_SOURCE=api
 ```
 
-El proveedor API espera los endpoints definidos en `educonnect-backend/prds/013-calendar-class-schedule.md`.
+El proveedor API usa `/api/calendar/catalog`, `/api/calendar`, `/api/calendar/me` y `/api/calendar/sessions`. El backend valida la matrícula, las asignaciones docentes y los conflictos de docente, grupo y aula. El contrato completo está en `educonnect-backend/prds/013-calendar-class-schedule.md`.
 
 El componente visual trabaja con `CalendarSession`, que usa nombres en `camelCase`. La normalización de respuestas backend con `snake_case` vive en `src/api/calendar.ts`.
 

@@ -17,6 +17,7 @@ interface CalendarSessionDialogProps {
   session: CalendarSession | null;
   role: CalendarRole;
   catalog: CalendarCatalog;
+  schoolYearId: string;
   canEdit: boolean;
   onSave: (input: CalendarSessionInput, sessionId?: string) => Promise<void>;
   onCancelSession: (session: CalendarSession) => Promise<void>;
@@ -63,6 +64,7 @@ const CalendarSessionDialog = ({
   session,
   role,
   catalog,
+  schoolYearId,
   canEdit,
   onSave,
   onCancelSession,
@@ -108,7 +110,7 @@ const CalendarSessionDialog = ({
     setSaving(true);
     try {
       await onSave({
-        schoolYearId: catalog.years[0]?.id || 'year-2026',
+        schoolYearId: schoolYearId || catalog.years[0]?.id || '',
         groupId: form.groupId,
         areaId: form.areaId,
         teacherId: form.teacherId,
