@@ -3,6 +3,7 @@ import {
   Users,
   UserCheck,
   Calendar,
+  CalendarDays,
   BookOpen,
   School,
   ClipboardList,
@@ -41,6 +42,7 @@ const adminItems = [
 
 const academicItems = [
   { title: 'Años Escolares', url: '/academic/school-years', icon: Calendar },
+  { title: 'Calendario', url: '/calendar', icon: CalendarDays },
   { title: 'Periodos', url: '/academic/periods', icon: Timer },
   { title: 'Grados', url: '/academic/grades', icon: Layers },
   { title: 'Áreas', url: '/academic/areas', icon: BookOpen },
@@ -57,6 +59,7 @@ const groupItems = [
 const teacherItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
   { title: 'Notificaciones', url: '/notifications', icon: Bell },
+  { title: 'Calendario', url: '/calendar', icon: CalendarDays },
   { title: 'Mis Grupos', url: '/my-groups', icon: School },
   { title: 'Resultados', url: '/period-results', icon: BarChart3 },
 ];
@@ -64,6 +67,7 @@ const teacherItems = [
 const studentItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
   { title: 'Notificaciones', url: '/notifications', icon: Bell },
+  { title: 'Calendario', url: '/calendar', icon: CalendarDays },
   { title: 'Mis Actividades', url: '/my-activities', icon: FileText },
   { title: 'Mis Calificaciones', url: '/my-grades', icon: ClipboardList },
   { title: 'Mis Resultados', url: '/my-results', icon: BarChart3 },

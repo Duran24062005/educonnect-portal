@@ -32,6 +32,7 @@ import { activitiesApi, type Activity } from '@/api/activities';
 import { notificationsApi, type NotificationItem } from '@/api/notifications';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
+import StudentNextClassCard from '@/components/calendar/StudentNextClassCard';
 
 const StatCard = ({
   title,
@@ -423,6 +424,8 @@ const TeacherDashboard = () => {
         <StatCard title="Promedio" value={summary?.summary?.average?.toFixed?.(1) || '0.0'} icon={BarChart3} loading={loading} />
       </div>
 
+      <StudentNextClassCard role="teacher" />
+
       <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
         <Card className="border-border/60">
           <CardHeader>
@@ -775,6 +778,8 @@ const StudentDashboard = () => {
         <StatCard title="Actividades por entregar" value={pendingActivities.length} icon={ClipboardList} loading={isBusy} />
         <StatCard title="Actividades calificadas" value={gradedActivities.length} icon={CheckCircle2} loading={isBusy} />
       </div>
+
+      <StudentNextClassCard />
 
       <div className="grid gap-4 xl:grid-cols-[1.35fr_0.95fr]">
         <Card className="border-border/60">

@@ -35,6 +35,7 @@ Esta primera version:
 - [modules/admin.md](./modules/admin.md)
 - [modules/teacher.md](./modules/teacher.md)
 - [modules/student.md](./modules/student.md)
+- [modules/calendar.md](./modules/calendar.md)
 - [modules/academic.md](./modules/academic.md)
 - [modules/groups.md](./modules/groups.md)
 

@@ -45,6 +45,7 @@ const StudentBulletinPage = lazy(() => import('./pages/student/StudentBulletinPa
 const StudentActivityDetailPage = lazy(() => import('./pages/student/StudentActivityDetailPage'));
 const EvaluationStatsPage = lazy(() => import('./pages/EvaluationStatsPage'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
+const CalendarPage = lazy(() => import('./pages/CalendarPage'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -99,6 +100,7 @@ const App = () => (
                 <Route path="/dashboard" element={<ProfileCompleteGuard><DashboardPage /></ProfileCompleteGuard>} />
                 <Route path="/profile" element={<ProfileCompleteGuard><ProfilePage /></ProfileCompleteGuard>} />
                 <Route path="/notifications" element={<ProfileCompleteGuard><NotificationsPage /></ProfileCompleteGuard>} />
+                <Route path="/calendar" element={<ProfileCompleteGuard><RoleRoute roles={['admin', 'teacher', 'student']}><CalendarPage /></RoleRoute></ProfileCompleteGuard>} />
 
                 {/* Admin routes */}
                 <Route path="/users" element={<ProfileCompleteGuard><RoleRoute roles={['admin']}><UsersPage /></RoleRoute></ProfileCompleteGuard>} />

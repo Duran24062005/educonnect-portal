@@ -55,6 +55,10 @@ vi.mock('@/components/charts/LightweightCategoryChart', () => ({
   ),
 }));
 
+vi.mock('@/components/calendar/StudentNextClassCard', () => ({
+  default: () => <div data-testid="student-next-class-card" />,
+}));
+
 vi.mock('@/components/ui/select', () => {
   const SelectItem = ({ value, children }: { value: string; children: ReactNode }) => (
     <option value={value}>{children}</option>
