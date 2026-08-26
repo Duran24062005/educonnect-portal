@@ -427,8 +427,8 @@ const TeacherDashboard = () => {
 
       <StudentNextClassCard role="teacher" />
 
-      <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
-        <Card className="border-border/60">
+      <div className="grid min-w-0 gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+        <Card data-testid="teacher-dashboard-chart-card" className="min-w-0 overflow-hidden border-border/60">
           <CardHeader>
             <CardTitle className="text-base">Distribución por nivel de desempeño</CardTitle>
             <p className="text-sm text-muted-foreground">Conteo consolidado de estudiantes del docente por nivel académico.</p>
@@ -442,7 +442,7 @@ const TeacherDashboard = () => {
           </CardContent>
         </Card>
 
-        <Card className="border-border/60">
+        <Card className="min-w-0 border-border/60">
           <CardHeader>
             <CardTitle className="text-base">Año escolar y estado</CardTitle>
           </CardHeader>
@@ -474,8 +474,8 @@ const TeacherDashboard = () => {
         </Card>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-        <Card className="border-border/60">
+      <div className="grid min-w-0 gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+        <Card data-testid="teacher-dashboard-chart-card" className="min-w-0 overflow-hidden border-border/60">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <TrendingUp className="h-4 w-4" />
@@ -493,7 +493,7 @@ const TeacherDashboard = () => {
           </CardContent>
         </Card>
 
-        <Card className="border-border/60">
+        <Card data-testid="teacher-dashboard-chart-card" className="min-w-0 overflow-hidden border-border/60">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Trophy className="h-4 w-4" />
