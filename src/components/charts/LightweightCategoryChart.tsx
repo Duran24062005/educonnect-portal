@@ -226,6 +226,7 @@ export const LightweightCategoryChart = ({
       />
       <div
         ref={tooltipRef}
+        data-testid="lightweight-category-chart-tooltip"
         className="pointer-events-none absolute z-10 min-w-36 rounded-xl border border-border/70 bg-background/95 px-3 py-2 text-xs shadow-lg backdrop-blur transition-opacity"
         style={{ opacity: 0 }}
       />
