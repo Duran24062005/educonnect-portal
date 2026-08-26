@@ -16,6 +16,7 @@ import {
 
 import Index from './pages/Index';
 import LoginPage from './pages/LoginPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import RegisterPage from './pages/RegisterPage';
 import CompleteProfilePage from './pages/CompleteProfilePage';
 import AccountStatusPage from './pages/AccountStatusPage';
@@ -96,6 +97,7 @@ const App = () => (
                 {/* Public routes */}
                 <Route path="/" element={<Index />} />
                 <Route path="/login" element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
+                <Route path="/forgot-password" element={<PublicOnlyRoute><ForgotPasswordPage /></PublicOnlyRoute>} />
                 <Route path="/register" element={<PublicOnlyRoute><RegisterPage /></PublicOnlyRoute>} />
                 <Route path="/complete-profile" element={<IncompleteProfileRoute><CompleteProfilePage /></IncompleteProfileRoute>} />
                 <Route path="/account-status" element={<AccountStatusRoute><AccountStatusPage /></AccountStatusRoute>} />

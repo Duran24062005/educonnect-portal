@@ -27,6 +27,21 @@ export interface ChangePasswordData {
   new_password_confirm: string;
 }
 
+export interface RequestPasswordResetData {
+  email: string;
+}
+
+export interface VerifyPasswordResetCodeData {
+  email: string;
+  code: string;
+}
+
+export interface ResetPasswordData {
+  reset_token: string;
+  new_password: string;
+  new_password_confirm: string;
+}
+
 export interface ProfileStatusResponse {
   profile_complete: boolean;
   person_status: string | null;
@@ -40,4 +55,9 @@ export const authApi = {
   me: () => api.get('/api/auth/me'),
   logout: () => api.post('/api/auth/logout'),
   changePassword: (data: ChangePasswordData) => api.post('/api/auth/change-password', data),
+  requestPasswordReset: (data: RequestPasswordResetData) =>
+    api.post('/api/auth/request-password-reset', data),
+  verifyPasswordResetCode: (data: VerifyPasswordResetCodeData) =>
+    api.post('/api/auth/verify-password-reset-code', data),
+  resetPassword: (data: ResetPasswordData) => api.post('/api/auth/reset-password', data),
 };
