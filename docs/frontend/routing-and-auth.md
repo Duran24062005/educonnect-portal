@@ -71,6 +71,16 @@ Protege la pantalla de estado de cuenta y soporta casos donde no hay sesion acti
 
 ## Flujo esperado por tipo de usuario
 
+## Recuperación de contraseña
+
+`/forgot-password` es una ruta pública y mantiene un flujo local de tres pasos:
+
+1. Solicita el código con `POST /api/auth/request-password-reset`.
+2. Valida el código con `POST /api/auth/verify-password-reset-code`.
+3. Cambia la contraseña con `POST /api/auth/reset-password` y vuelve a `/login`.
+
+El correo, el código y el `reset_token` se conservan únicamente en memoria React. El portal no crea una sesión ni guarda estos valores en `localStorage`.
+
 ### Usuario nuevo
 
 1. Registro

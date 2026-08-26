@@ -127,6 +127,7 @@ Importante:
 - `/`
 - `/login`
 - `/register`
+- `/forgot-password`
 - `/complete-profile`
 - `/account-status`
 
