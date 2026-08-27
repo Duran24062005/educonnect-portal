@@ -51,6 +51,15 @@ const toFormState = (session: CalendarSession | null, catalog: CalendarCatalog):
   };
 };
 
+const getSaveErrorMessage = (error: any) => {
+  const data = error?.response?.data;
+  const detailMessages = Array.isArray(data?.details)
+    ? data.details.map((detail: any) => detail?.message).filter(Boolean)
+    : [];
+  const ruleMessages = Array.isArray(data?.details?.errors) ? data.details.errors : [];
+  return [...ruleMessages, ...detailMessages].join(' · ') || data?.message || 'No se pudo guardar la sesión.';
+};
+
 const CalendarSessionDialog = ({
   open,
   onOpenChange,
@@ -64,6 +73,7 @@ const CalendarSessionDialog = ({
   onActivateSession,
 }: CalendarSessionDialogProps) => {
   const isCreating = !session;
+  const isTeacherScheduleSession = role === 'teacher' && Boolean(session?.scheduleId);
   const [editing, setEditing] = useState(isCreating);
   const [saving, setSaving] = useState(false);
   const [cancelling, setCancelling] = useState(false);
@@ -92,6 +102,10 @@ const CalendarSessionDialog = ({
       setFormError('Escribe el tema de la sesión.');
       return;
     }
+    if (!form.groupId || !form.areaId || !form.teacherId || !form.aulaId) {
+      setFormError('Selecciona grupo, materia, docente y aula.');
+      return;
+    }
 
     const startAt = new Date(`${form.date}T${form.startTime}:00`);
     const endAt = new Date(`${form.date}T${form.endTime}:00`);
@@ -113,8 +127,8 @@ const CalendarSessionDialog = ({
         topic: form.topic.trim(),
       }, session?.id);
       onOpenChange(false);
-    } catch {
-      setFormError('No se pudo guardar la sesión. Revisa los datos e inténtalo de nuevo.');
+    } catch (error) {
+      setFormError(getSaveErrorMessage(error));
     } finally {
       setSaving(false);
     }
@@ -155,7 +169,7 @@ const CalendarSessionDialog = ({
             {title}
           </DialogTitle>
           <DialogDescription>
-            {isCreating ? 'Programa una sesión para la agenda demo.' : editing ? 'Actualiza la información de esta sesión.' : 'Consulta el detalle de la clase y sus actividades.'}
+            {isCreating ? 'Registra una clase dentro de la disponibilidad publicada para el grupo.' : editing ? 'Actualiza la información de esta sesión.' : 'Consulta el detalle de la clase y sus actividades.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -209,25 +223,25 @@ const CalendarSessionDialog = ({
           <div className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-3">
               <Field label="Fecha" htmlFor="calendar-date">
-                <Input id="calendar-date" type="date" value={form.date} onChange={(event) => updateField('date', event.target.value)} />
+                <Input id="calendar-date" type="date" value={form.date} onChange={(event) => updateField('date', event.target.value)} disabled={isTeacherScheduleSession} />
               </Field>
               <Field label="Inicio" htmlFor="calendar-start-time">
-                <Input id="calendar-start-time" type="time" value={form.startTime} onChange={(event) => updateField('startTime', event.target.value)} />
+                <Input id="calendar-start-time" type="time" value={form.startTime} onChange={(event) => updateField('startTime', event.target.value)} disabled={isTeacherScheduleSession} />
               </Field>
               <Field label="Final" htmlFor="calendar-end-time">
-                <Input id="calendar-end-time" type="time" value={form.endTime} onChange={(event) => updateField('endTime', event.target.value)} />
+                <Input id="calendar-end-time" type="time" value={form.endTime} onChange={(event) => updateField('endTime', event.target.value)} disabled={isTeacherScheduleSession} />
               </Field>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Grupo">
-                <Select value={form.groupId} onValueChange={(value) => updateField('groupId', value)}>
+                <Select value={form.groupId} onValueChange={(value) => updateField('groupId', value)} disabled={isTeacherScheduleSession}>
                   <SelectTrigger><SelectValue placeholder="Selecciona grupo" /></SelectTrigger>
                   <SelectContent>{availableGroups.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent>
                 </Select>
               </Field>
               <Field label="Materia">
-                <Select value={form.areaId} onValueChange={(value) => updateField('areaId', value)}>
+                <Select value={form.areaId} onValueChange={(value) => updateField('areaId', value)} disabled={isTeacherScheduleSession}>
                   <SelectTrigger><SelectValue placeholder="Selecciona materia" /></SelectTrigger>
                   <SelectContent>{catalog.areas.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent>
                 </Select>
@@ -239,7 +253,7 @@ const CalendarSessionDialog = ({
                 </Select>
               </Field>
               <Field label="Aula">
-                <Select value={form.aulaId} onValueChange={(value) => updateField('aulaId', value)}>
+                <Select value={form.aulaId} onValueChange={(value) => updateField('aulaId', value)} disabled={isTeacherScheduleSession}>
                   <SelectTrigger><SelectValue placeholder="Selecciona aula" /></SelectTrigger>
                   <SelectContent>{catalog.aulas.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent>
                 </Select>
@@ -260,13 +274,13 @@ const CalendarSessionDialog = ({
         )}
 
         <DialogFooter className="gap-2 sm:gap-0">
-          {!editing && canEdit && session?.status === 'cancelled' && (
+          {!editing && canEdit && role === 'admin' && session?.status === 'cancelled' && (
             <Button type="button" variant="outline" className="sm:mr-auto" onClick={handleActivate} disabled={activating}>
               {activating ? <Loader2 className="h-4 w-4 animate-spin" /> : <CalendarCheck className="h-4 w-4" />}
               Reactivar clase
             </Button>
           )}
-          {!editing && canEdit && session?.status !== 'cancelled' && (
+          {!editing && canEdit && role === 'admin' && session?.status !== 'cancelled' && (
             <>
               <Button type="button" variant="outline" className="sm:mr-auto" onClick={handleCancel} disabled={cancelling}>
                 {cancelling ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
@@ -276,6 +290,11 @@ const CalendarSessionDialog = ({
                 <Pencil className="h-4 w-4" />Editar
               </Button>
             </>
+          )}
+          {!editing && role === 'teacher' && session?.scheduleId && session.status !== 'cancelled' && (
+            <Button type="button" variant="outline" onClick={() => setEditing(true)}>
+              <Pencil className="h-4 w-4" />Registrar tema
+            </Button>
           )}
           {editing && (
             <>

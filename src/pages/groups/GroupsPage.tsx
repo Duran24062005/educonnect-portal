@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { academicApi } from '@/api/academic';
 import { groupsApi } from '@/api/groups';
+import { institutionApi } from '@/api/institution';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -68,20 +69,26 @@ const GroupsPage = () => {
   const [creating, setCreating] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [newGroup, setNewGroup] = useState({ name: '', grade_id: '', max_capacity: '' });
+  const [newGroup, setNewGroup] = useState({ name: '', grade_id: '', max_capacity: '', campus_id: '', shift_id: '' });
   const [grades, setGrades] = useState<any[]>([]);
+  const [campuses, setCampuses] = useState<any[]>([]);
+  const [shifts, setShifts] = useState<any[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [yearsRes, gradesRes] = await Promise.all([
+        const [yearsRes, gradesRes, campusesRes, shiftsRes] = await Promise.all([
           academicApi.getSchoolYears(),
           academicApi.getGrades(),
+          institutionApi.getCampuses(),
+          institutionApi.getShifts(),
         ]);
         const y = extractArray(yearsRes, 'schoolYears');
         setYears(y);
         setGrades(extractArray(gradesRes, 'grades'));
+        setCampuses(extractArray(campusesRes));
+        setShifts(extractArray(shiftsRes));
         const active = y.find((yr: any) => yr.is_active);
         if (active) setSelectedYear(active._id);
         else if (y.length > 0) setSelectedYear(y[0]._id);
@@ -125,6 +132,8 @@ const GroupsPage = () => {
         grade_id: newGroup.grade_id,
         max_capacity: capacity,
         school_year_id: selectedYear,
+        campus_id: newGroup.campus_id || undefined,
+        shift_id: newGroup.shift_id || undefined,
       };
       if (editingId) {
         await groupsApi.update(editingId, payload);
@@ -135,7 +144,7 @@ const GroupsPage = () => {
       }
       setDialogOpen(false);
       setEditingId(null);
-      setNewGroup({ name: '', grade_id: '', max_capacity: '' });
+      setNewGroup({ name: '', grade_id: '', max_capacity: '', campus_id: '', shift_id: '' });
       const res = await groupsApi.getBySchoolYear(selectedYear);
       setGroups(extractArray(res, 'groups'));
     } catch (err: any) {
@@ -162,6 +171,8 @@ const GroupsPage = () => {
       name: group.name || '',
       grade_id: group.grade?._id || '',
       max_capacity: String(group.max_capacity ?? ''),
+      campus_id: group.campus_id?._id || group.campus_id || '',
+      shift_id: group.shift_id?._id || group.shift_id || '',
     });
     setDialogOpen(true);
   };
@@ -190,7 +201,7 @@ const GroupsPage = () => {
                 <Button
                   onClick={() => {
                     setEditingId(null);
-                    setNewGroup({ name: '', grade_id: '', max_capacity: '' });
+                    setNewGroup({ name: '', grade_id: '', max_capacity: '', campus_id: '', shift_id: '' });
                   }}
                 >
                   <Plus className="w-4 h-4 mr-2" />Nuevo Grupo
@@ -225,6 +236,10 @@ const GroupsPage = () => {
                       onChange={(e) => setNewGroup({ ...newGroup, max_capacity: e.target.value })}
                       placeholder="35"
                     />
+                  </div>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="space-y-2"><Label>Sede</Label><Select value={newGroup.campus_id || 'none'} onValueChange={(value) => setNewGroup({ ...newGroup, campus_id: value === 'none' ? '' : value })}><SelectTrigger><SelectValue placeholder="Sede (opcional)" /></SelectTrigger><SelectContent><SelectItem value="none">Sin sede</SelectItem>{campuses.filter((item) => item.status === 'active').map((item) => <SelectItem key={item._id} value={item._id}>{item.name}</SelectItem>)}</SelectContent></Select></div>
+                    <div className="space-y-2"><Label>Jornada</Label><Select value={newGroup.shift_id || 'none'} onValueChange={(value) => setNewGroup({ ...newGroup, shift_id: value === 'none' ? '' : value })}><SelectTrigger><SelectValue placeholder="Jornada (requerida para horario)" /></SelectTrigger><SelectContent><SelectItem value="none">Sin jornada</SelectItem>{shifts.filter((item) => item.status === 'active').map((item) => <SelectItem key={item._id} value={item._id}>{item.name} · {item.start_time} - {item.end_time}</SelectItem>)}</SelectContent></Select></div>
                   </div>
                   <Button onClick={handleCreate} className="w-full" disabled={creating}>
                     {creating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
@@ -262,6 +277,7 @@ const GroupsPage = () => {
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Users className="w-4 h-4" />
                     <span>{resolveGradeName(g, grades) || 'Sin grado'}</span>
+                    {g.shift_id?.name && <Badge variant="outline">{g.shift_id.name}</Badge>}
                     <Badge variant="secondary">Capacidad: {g.max_capacity ?? '-'}</Badge>
                     <Badge variant="outline">Matriculados: {getActiveEnrollments(g)}</Badge>
                     <Badge variant="outline">Disponibles: {getAvailableSlots(g)}</Badge>

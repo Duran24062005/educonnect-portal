@@ -25,7 +25,7 @@ Por defecto se usa el proveedor demo. Para usar la API persistente se puede esta
 VITE_CALENDAR_DATA_SOURCE=api
 ```
 
-El proveedor API usa `/api/calendar/catalog`, `/api/calendar`, `/api/calendar/me` y `/api/calendar/sessions`. El backend valida la matrícula, las asignaciones docentes y los conflictos de docente, grupo y aula. El contrato completo está en `educonnect-backend/prds/013-calendar-class-schedule.md`.
+El proveedor API usa `/api/calendar/catalog`, `/api/calendar`, `/api/calendar/me`, `/api/calendar/sessions` y `/api/calendar/exceptions`. El backend valida la matrícula, las asignaciones docentes, la ventana semanal publicada del grupo y los conflictos de docente, grupo y aula. El contrato de disponibilidad está en `educonnect-backend/prds/037-weekly-group-availability.md`.
 
 El componente visual trabaja con `CalendarSession`, que usa nombres en `camelCase`. La normalización de respuestas backend con `snake_case` vive en `src/api/calendar.ts`.
 
@@ -46,8 +46,8 @@ Para validar la integración persistente, el backend debe estar disponible en `V
 ## Permisos demo
 
 - `student`: consulta las sesiones del grupo demo `7A`; no edita.
-- `teacher`: consulta y edita sesiones del docente demo `Daniel Vargas`.
-- `admin`: consulta todas las sesiones y puede crear, editar, cancelar y filtrar.
+- `teacher`: consulta sus sesiones y registra clases dentro de la disponibilidad publicada de sus grupos.
+- `admin`: configura disponibilidad por grupo y días lectivos; consulta, crea, edita, cancela y filtra sesiones.
 - `parent`: consulta únicamente sesiones de grupos con estudiantes vinculados y matrícula activa; no puede editar.
 
 Estos identificadores son únicamente fixtures. La API debe resolver el alcance por matrícula y asignación docente, no por estos valores.
@@ -57,5 +57,6 @@ Estos identificadores son únicamente fixtures. La API debe resolver el alcance 
 - La semana es la vista operativa en escritorio.
 - La agenda es la vista legible en móvil.
 - Las sesiones canceladas permanecen visibles y no se consideran próxima clase.
-- Admin y docente autorizado pueden reactivar una sesión cancelada; la demo conserva todos sus datos y cambia el estado a `scheduled`.
+- Administración puede reactivar una sesión cancelada; las sesiones docentes quedan vinculadas a su ventana publicada y no se proyectan como ocurrencias virtuales.
+- Las sesiones fuera de la disponibilidad solo se crean mediante la ruta de excepciones administrativa y requieren motivo.
 - Las actividades se muestran como resumen relacionado por grupo y materia; no se crea todavía `activity.session_id`.

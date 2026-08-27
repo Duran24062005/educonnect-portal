@@ -36,6 +36,8 @@ export interface SchoolShiftPayload {
 }
 
 export const institutionApi = {
+  getCurrent: () => api.get('/api/institutions/current'),
+  getScheduleConfig: () => api.get<{ data: { school_days: number[]; timezone: string } }>('/api/institutions/current/schedule-config'),
   getCampuses: () => api.get<{ data: Campus[] }>('/api/institutions/current/campuses'),
   createCampus: (data: CampusPayload) => api.post<{ data: Campus }>('/api/institutions/current/campuses', data),
   updateCampus: (id: string, data: Partial<CampusPayload>) => api.patch('/api/institutions/current/campuses/' + assertObjectId(id, 'id'), data),
@@ -44,4 +46,5 @@ export const institutionApi = {
   createShift: (data: SchoolShiftPayload) => api.post<{ data: SchoolShift }>('/api/institutions/current/shifts', data),
   updateShift: (id: string, data: Partial<SchoolShiftPayload>) => api.patch('/api/institutions/current/shifts/' + assertObjectId(id, 'id'), data),
   deleteShift: (id: string) => api.delete('/api/institutions/current/shifts/' + assertObjectId(id, 'id')),
+  updateScheduleConfig: (school_days: number[]) => api.patch('/api/institutions/current/schedule-config', { school_days }),
 };

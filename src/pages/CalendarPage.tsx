@@ -122,11 +122,10 @@ const CalendarPage = () => {
       toast.success('Sesión reactivada');
     },
   });
-
   const sessions = calendarQuery.data?.sessions || [];
   const nextSession = getNextSession(sessions);
   const hasFilters = Object.values(filters).some(Boolean);
-  const canEditSession = (session: CalendarSession | null) => Boolean(session && (role === 'admin' || role === 'teacher'));
+  const canEditSession = (session: CalendarSession | null) => Boolean(session && (role === 'admin' || (role === 'teacher' && session.source === 'schedule')));
 
   const retryCalendar = () => {
     void catalogQuery.refetch();

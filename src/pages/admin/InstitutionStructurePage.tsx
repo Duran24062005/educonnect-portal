@@ -28,6 +28,9 @@ const InstitutionStructurePage = () => {
   const [shiftForm, setShiftForm] = useState(emptyShift);
   const [editingCampusId, setEditingCampusId] = useState<string | null>(null);
   const [editingShiftId, setEditingShiftId] = useState<string | null>(null);
+  const [schoolDays, setSchoolDays] = useState<number[]>([1, 2, 3, 4, 5]);
+  const [savingSchoolDays, setSavingSchoolDays] = useState(false);
+  const days = [{ value: 1, label: 'Lunes' }, { value: 2, label: 'Martes' }, { value: 3, label: 'Miércoles' }, { value: 4, label: 'Jueves' }, { value: 5, label: 'Viernes' }, { value: 6, label: 'Sábado' }, { value: 7, label: 'Domingo' }];
 
   const loadStructure = useCallback(async () => {
     setLoading(true);
@@ -39,18 +42,32 @@ const InstitutionStructurePage = () => {
     }
 
     try {
-      const [campusesResponse, shiftsResponse] = await Promise.all([
+      const [campusesResponse, shiftsResponse, institutionResponse] = await Promise.all([
         institutionApi.getCampuses(),
         institutionApi.getShifts(),
+        institutionApi.getScheduleConfig(),
       ]);
       setCampuses(campusesResponse.data?.data ?? []);
       setShifts(shiftsResponse.data?.data ?? []);
+      setSchoolDays(institutionResponse.data?.data?.school_days ?? [1, 2, 3, 4, 5]);
     } catch (error) {
       toast.error(errorMessage(error, 'No se pudo cargar la estructura institucional'));
     } finally {
       setLoading(false);
     }
   }, [hasInstitutionContext]);
+
+  const saveSchoolDays = async () => {
+    setSavingSchoolDays(true);
+    try {
+      await institutionApi.updateScheduleConfig(schoolDays);
+      toast.success('Días lectivos actualizados');
+    } catch (error) {
+      toast.error(errorMessage(error, 'No se pudieron actualizar los días lectivos'));
+    } finally {
+      setSavingSchoolDays(false);
+    }
+  };
 
   useEffect(() => {
     loadStructure();
@@ -192,6 +209,15 @@ const InstitutionStructurePage = () => {
             </CardContent>
           </Card>
         </div>
+
+        <Card>
+          <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Clock3 className="h-4 w-4" />Días lectivos institucionales</CardTitle></CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">Estos días estarán disponibles para los bloques del horario semanal.</p>
+            <div className="flex flex-wrap gap-2">{days.map((day) => { const active = schoolDays.includes(day.value); return <Button key={day.value} type="button" variant={active ? 'default' : 'outline'} size="sm" onClick={() => setSchoolDays((current) => active && current.length > 1 ? current.filter((value) => value !== day.value) : active ? current : [...current, day.value].sort())}>{active ? '✓ ' : ''}{day.label}</Button>; })}</div>
+            <div className="flex justify-end"><Button onClick={saveSchoolDays} disabled={!hasInstitutionContext || savingSchoolDays}>{savingSchoolDays && <Loader2 className="h-4 w-4 animate-spin" />}Guardar días lectivos</Button></div>
+          </CardContent>
+        </Card>
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           <Card>

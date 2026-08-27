@@ -34,6 +34,7 @@ import NotFound from "./pages/NotFound";
 import AttendancePage from './pages/AttendancePage';
 import ImportsPage from './pages/admin/ImportsPage';
 import InstitutionStructurePage from './pages/admin/InstitutionStructurePage';
+import ScheduleManagementPage from './pages/academic/ScheduleManagementPage';
 
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const GroupDetailPage = lazy(() => import('./pages/groups/GroupDetailPage'));
@@ -115,6 +116,7 @@ const App = () => (
                 <Route path="/users/pending" element={<ProfileCompleteGuard><RoleRoute roles={['admin']}><PendingUsersPage /></RoleRoute></ProfileCompleteGuard>} />
                 <Route path="/imports" element={<ProfileCompleteGuard><RoleRoute roles={['admin']}><ImportsPage /></RoleRoute></ProfileCompleteGuard>} />
                 <Route path="/institution/structure" element={<ProfileCompleteGuard><RoleRoute roles={['admin']}><InstitutionStructurePage /></RoleRoute></ProfileCompleteGuard>} />
+                <Route path="/academic/schedule" element={<ProfileCompleteGuard><RoleRoute roles={['admin']}><ScheduleManagementPage /></RoleRoute></ProfileCompleteGuard>} />
                 <Route path="/academic/school-years" element={<ProfileCompleteGuard><RoleRoute roles={['admin']}><SchoolYearsPage /></RoleRoute></ProfileCompleteGuard>} />
                 <Route path="/academic/periods" element={<ProfileCompleteGuard><RoleRoute roles={['admin']}><PeriodsPage /></RoleRoute></ProfileCompleteGuard>} />
                 <Route path="/academic/grades" element={<ProfileCompleteGuard><RoleRoute roles={['admin']}><GradesPage /></RoleRoute></ProfileCompleteGuard>} />

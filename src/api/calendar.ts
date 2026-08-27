@@ -27,6 +27,12 @@ export interface CalendarSession {
   startAt: string;
   endAt: string;
   status: CalendarSessionStatus;
+  scheduleId?: string | null;
+  scheduleSlotId?: string | null;
+  scheduleWindowId?: string | null;
+  occurrenceDate?: string | null;
+  source?: 'legacy' | 'schedule' | 'exception';
+  exceptionReason?: string | null;
   schoolYear: CalendarSchoolYear;
   grade: CalendarEntity;
   group: CalendarEntity;
@@ -102,6 +108,12 @@ const normalizeSession = (session: any): CalendarSession => ({
   startAt: session.startAt ?? session.start_at,
   endAt: session.endAt ?? session.end_at,
   status: session.status === 'cancelled' ? 'cancelled' : 'scheduled',
+  scheduleId: session.scheduleId ?? session.schedule_id ?? null,
+  scheduleSlotId: session.scheduleSlotId ?? session.schedule_slot_id ?? null,
+  scheduleWindowId: session.scheduleWindowId ?? session.schedule_window_id ?? null,
+  occurrenceDate: session.occurrenceDate ?? session.occurrence_date ?? null,
+  source: session.source ?? 'legacy',
+  exceptionReason: session.exceptionReason ?? session.exception_reason ?? null,
   schoolYear: {
     ...normalizeEntity(session.schoolYear ?? session.school_year, 'Año escolar'),
     year: Number(session.schoolYear?.year ?? session.school_year?.year ?? 0),

@@ -47,6 +47,7 @@ const adminItems = [
 const academicItems = [
   { title: 'Años Escolares', url: '/academic/school-years', icon: Calendar },
   { title: 'Calendario', url: '/calendar', icon: CalendarDays },
+  { title: 'Horario semanal', url: '/academic/schedule', icon: CalendarDays },
   { title: 'Asistencia', url: '/attendance', icon: ClipboardList },
   { title: 'Periodos', url: '/academic/periods', icon: Timer },
   { title: 'Grados', url: '/academic/grades', icon: Layers },
