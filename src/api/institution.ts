@@ -2,6 +2,7 @@ import api from './axios';
 import { assertObjectId } from '@/lib/object-id';
 
 export type StructureStatus = 'active' | 'inactive';
+export type ShiftType = 'morning' | 'afternoon' | 'hybrid';
 
 export interface Campus {
   _id: string;
@@ -15,6 +16,7 @@ export interface SchoolShift {
   _id: string;
   name: string;
   code: string;
+  shift_type: ShiftType;
   start_time: string;
   end_time: string;
   status: StructureStatus;
@@ -30,6 +32,7 @@ export interface CampusPayload {
 export interface SchoolShiftPayload {
   name: string;
   code: string;
+  shift_type: ShiftType;
   start_time: string;
   end_time: string;
   status?: StructureStatus;

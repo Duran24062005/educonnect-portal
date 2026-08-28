@@ -13,6 +13,25 @@ export interface AvailabilityWindow extends AvailabilityWindowInput {
   group: { _id: string; name: string };
 }
 
+export interface ScheduleSlotInput {
+  slot_id?: string;
+  group_id: string;
+  area_id: string;
+  teacher_id: string;
+  aula_id: string;
+  weekday: number;
+  start_time: string;
+  end_time: string;
+}
+
+export interface ScheduleSlot extends ScheduleSlotInput {
+  slot_id: string;
+  group: { _id: string; name: string };
+  area: { _id: string; name: string };
+  teacher: { _id: string; name: string };
+  aula: { _id: string; name: string };
+}
+
 export interface WeeklySchedule {
   id: string;
   version: number;
@@ -21,13 +40,14 @@ export interface WeeklySchedule {
   school_days: number[];
   published_at: string | null;
   availability_windows: AvailabilityWindow[];
+  slots: ScheduleSlot[];
 }
 
 const unwrap = <T>(response: any): T => (response?.data?.data ?? response?.data) as T;
 
-const normalizeEntity = (value: any) => ({
+const normalizeEntity = (value: any, fallbackName = 'Sin asignar') => ({
   _id: String(value?._id ?? value?.id ?? ''),
-  name: String(value?.name ?? 'Sin asignar'),
+  name: String(value?.name ?? fallbackName),
 });
 
 const normalizeSchedule = (value: any): WeeklySchedule => ({
@@ -44,6 +64,20 @@ const normalizeSchedule = (value: any): WeeklySchedule => ({
     end_time: window.end_time,
     group: normalizeEntity(window.group),
   })) : [],
+  slots: Array.isArray(value?.slots) ? value.slots.map((slot: any) => ({
+    slot_id: String(slot.slot_id),
+    group_id: String(slot.group?._id ?? slot.group_id ?? ''),
+    area_id: String(slot.area?._id ?? slot.area_id ?? ''),
+    teacher_id: String(slot.teacher?._id ?? slot.teacher_id ?? ''),
+    aula_id: String(slot.aula?._id ?? slot.aula_id ?? ''),
+    weekday: Number(slot.weekday),
+    start_time: String(slot.start_time ?? ''),
+    end_time: String(slot.end_time ?? ''),
+    group: normalizeEntity(slot.group),
+    area: normalizeEntity(slot.area, 'Materia'),
+    teacher: normalizeEntity(slot.teacher, 'Docente'),
+    aula: normalizeEntity(slot.aula, 'Aula'),
+  })) : [],
 });
 
 export const scheduleApi = {
@@ -56,7 +90,7 @@ export const scheduleApi = {
     const response = await api.post('/api/calendar/schedules/drafts', { school_year_id: assertObjectId(schoolYearId, 'school_year_id') });
     return normalizeSchedule(unwrap(response));
   },
-  update: async (id: string, data: { school_days: number[]; availability_windows: AvailabilityWindowInput[] }) => {
+  update: async (id: string, data: { school_days: number[]; availability_windows: AvailabilityWindowInput[]; slots: ScheduleSlotInput[] }) => {
     const response = await api.patch(`/api/calendar/schedules/${assertObjectId(id, 'id')}`, data);
     return normalizeSchedule(unwrap(response));
   },

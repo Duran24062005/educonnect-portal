@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import { institutionApi, type Campus, type SchoolShift } from '@/api/institution';
+import { institutionApi, type Campus, type SchoolShift, type ShiftType } from '@/api/institution';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -13,7 +14,9 @@ import { Building2, Clock3, Loader2, Pencil, Power, Plus, X } from 'lucide-react
 import { useAuthStore } from '@/store/auth';
 
 const emptyCampus = { name: '', code: '', address: '' };
-const emptyShift = { name: '', code: '', start_time: '07:00', end_time: '12:00' };
+const emptyShift = { name: '', code: '', shift_type: 'morning' as ShiftType, start_time: '07:00', end_time: '12:00' };
+
+const shiftTypeLabels: Record<ShiftType, string> = { morning: 'Mañana', afternoon: 'Tarde', hybrid: 'Híbrida' };
 
 const errorMessage = (error: any, fallback: string) => error?.response?.data?.message || fallback;
 
@@ -198,6 +201,7 @@ const InstitutionStructurePage = () => {
                 <div className="space-y-2"><Label>Nombre</Label><Input value={shiftForm.name} onChange={(event) => setShiftForm({ ...shiftForm, name: event.target.value })} placeholder="Mañana" /></div>
                 <div className="space-y-2"><Label>Código</Label><Input value={shiftForm.code} onChange={(event) => setShiftForm({ ...shiftForm, code: event.target.value })} placeholder="AM" /></div>
               </div>
+              <div className="space-y-2"><Label>Tipo de jornada</Label><Select value={shiftForm.shift_type} onValueChange={(value: ShiftType) => setShiftForm({ ...shiftForm, shift_type: value })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="morning">Mañana</SelectItem><SelectItem value="afternoon">Tarde</SelectItem><SelectItem value="hybrid">Híbrida</SelectItem></SelectContent></Select></div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2"><Label>Hora inicial</Label><Input type="time" value={shiftForm.start_time} onChange={(event) => setShiftForm({ ...shiftForm, start_time: event.target.value })} /></div>
                 <div className="space-y-2"><Label>Hora final</Label><Input type="time" value={shiftForm.end_time} onChange={(event) => setShiftForm({ ...shiftForm, end_time: event.target.value })} /></div>
@@ -245,7 +249,7 @@ const InstitutionStructurePage = () => {
                   <TableBody>
                     {loading && Array.from({ length: 3 }).map((_, index) => <TableRow key={index}><TableCell><Skeleton className="h-4 w-32" /></TableCell><TableCell><Skeleton className="h-4 w-24" /></TableCell><TableCell><Skeleton className="h-5 w-16" /></TableCell><TableCell><Skeleton className="h-8 w-20 ml-auto" /></TableCell></TableRow>)}
                     {!loading && shifts.length === 0 && <TableRow><TableCell colSpan={4} className="py-8 text-center text-muted-foreground">No hay jornadas registradas</TableCell></TableRow>}
-                    {!loading && shifts.map((shift) => <TableRow key={shift._id}><TableCell><div className="font-medium">{shift.name}</div><div className="text-xs text-muted-foreground">{shift.code}</div></TableCell><TableCell>{shift.start_time} - {shift.end_time}</TableCell><TableCell><Badge variant={shift.status === 'active' ? 'default' : 'secondary'}>{shift.status === 'active' ? 'Activa' : 'Inactiva'}</Badge></TableCell><TableCell className="text-right"><div className="flex justify-end gap-1"><Button variant="ghost" size="icon" title="Editar jornada" onClick={() => { setEditingShiftId(shift._id); setShiftForm({ name: shift.name, code: shift.code, start_time: shift.start_time, end_time: shift.end_time }); }}><Pencil className="h-4 w-4" /></Button><Button variant="ghost" size="icon" title={shift.status === 'active' ? 'Desactivar jornada' : 'Activar jornada'} onClick={() => toggleShift(shift)}><Power className="h-4 w-4" /></Button></div></TableCell></TableRow>)}
+                    {!loading && shifts.map((shift) => <TableRow key={shift._id}><TableCell><div className="font-medium">{shift.name}</div><div className="text-xs text-muted-foreground">{shift.code}</div></TableCell><TableCell><div>{shift.start_time} - {shift.end_time}</div><div className="text-xs text-muted-foreground">{shiftTypeLabels[shift.shift_type || 'morning']}</div></TableCell><TableCell><Badge variant={shift.status === 'active' ? 'default' : 'secondary'}>{shift.status === 'active' ? 'Activa' : 'Inactiva'}</Badge></TableCell><TableCell className="text-right"><div className="flex justify-end gap-1"><Button variant="ghost" size="icon" title="Editar jornada" onClick={() => { setEditingShiftId(shift._id); setShiftForm({ name: shift.name, code: shift.code, shift_type: shift.shift_type || 'morning', start_time: shift.start_time, end_time: shift.end_time }); }}><Pencil className="h-4 w-4" /></Button><Button variant="ghost" size="icon" title={shift.status === 'active' ? 'Desactivar jornada' : 'Activar jornada'} onClick={() => toggleShift(shift)}><Power className="h-4 w-4" /></Button></div></TableCell></TableRow>)}
                   </TableBody>
                 </Table>
               </div>
