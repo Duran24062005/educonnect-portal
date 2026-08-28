@@ -10,6 +10,7 @@ import { getRoleLabel, normalizeRole } from '@/lib/auth';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -17,7 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { Bell, CheckCheck, ExternalLink, Send } from 'lucide-react';
+import { Bell, CheckCheck, ExternalLink, Plus, Send } from 'lucide-react';
 import { toast } from 'sonner';
 
 const formatDateTime = (value?: string | null) => {
@@ -104,6 +105,7 @@ const NotificationsPage = () => {
   const [teacherMessage, setTeacherMessage] = useState('');
   const [teacherScope, setTeacherScope] = useState<'all_my_students' | 'group'>('all_my_students');
   const [teacherGroupId, setTeacherGroupId] = useState('');
+  const [announcementModal, setAnnouncementModal] = useState<'admin' | 'teacher' | null>(null);
 
   const notificationsQuery = useQuery({
     queryKey: ['notifications', filter],
@@ -171,6 +173,7 @@ const NotificationsPage = () => {
       toast.success(`Anuncio enviado a ${result.created_count} destinatarios`);
       setAdminTitle('');
       setAdminMessage('');
+      setAnnouncementModal(null);
       await invalidateNotifications();
     },
     onError: (error: any) => {
@@ -192,6 +195,7 @@ const NotificationsPage = () => {
       setTeacherMessage('');
       setTeacherScope('all_my_students');
       setTeacherGroupId('');
+      setAnnouncementModal(null);
       await invalidateNotifications();
     },
     onError: (error: any) => {
@@ -247,109 +251,95 @@ const NotificationsPage = () => {
         </div>
 
         {(role === 'admin' || role === 'teacher') && (
-          <div className="grid gap-4 lg:grid-cols-2">
-            {role === 'admin' && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Anuncio administrativo</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Título</Label>
-                    <Input value={adminTitle} onChange={(event) => setAdminTitle(event.target.value)} placeholder="Ej. Recordatorio institucional" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Mensaje</Label>
-                    <Textarea value={adminMessage} onChange={(event) => setAdminMessage(event.target.value)} rows={5} placeholder="Escribe el mensaje que verán los destinatarios." />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Enviar a</Label>
-                    <Select value={targetRole} onValueChange={(value: 'admin' | 'teacher' | 'student' | 'parent' | 'teacher_student' | 'teacher_admin' | 'all') => setTargetRole(value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecciona el rol destinatario" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="admin">Solo admins</SelectItem>
-                        <SelectItem value="teacher">Solo docentes</SelectItem>
-                        <SelectItem value="student">Solo estudiantes</SelectItem>
-                        <SelectItem value="parent">Solo acudientes</SelectItem>
-                        <SelectItem value="teacher_student">Docentes y estudiantes</SelectItem>
-                        <SelectItem value="teacher_admin">Docentes y admins</SelectItem>
-                        <SelectItem value="all">Todos</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button
-                    onClick={() => adminAnnouncementMutation.mutate()}
-                    disabled={!adminTitle.trim() || !adminMessage.trim() || adminAnnouncementMutation.isPending}
-                  >
-                    <Send className="h-4 w-4" />
-                    Enviar anuncio
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-
-            {role === 'teacher' && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Anuncio docente</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Título</Label>
-                    <Input value={teacherTitle} onChange={(event) => setTeacherTitle(event.target.value)} placeholder="Ej. Entrega pendiente" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Mensaje</Label>
-                    <Textarea value={teacherMessage} onChange={(event) => setTeacherMessage(event.target.value)} rows={5} placeholder="Escribe el mensaje para tus estudiantes." />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Alcance</Label>
-                    <Select value={teacherScope} onValueChange={(value: 'all_my_students' | 'group') => setTeacherScope(value)}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all_my_students">Todos mis estudiantes</SelectItem>
-                        <SelectItem value="group">Solo un grupo</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {teacherScope === 'group' && (
-                    <div className="space-y-2">
-                      <Label>Grupo</Label>
-                      <Select value={teacherGroupId} onValueChange={setTeacherGroupId}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecciona un grupo" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {teacherGroups.map((group) => (
-                            <SelectItem key={group.group_id} value={group.group_id}>
-                              {group.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-                  <Button
-                    onClick={() => teacherAnnouncementMutation.mutate()}
-                    disabled={
-                      !teacherTitle.trim() ||
-                      !teacherMessage.trim() ||
-                      teacherAnnouncementMutation.isPending ||
-                      (teacherScope === 'group' && !teacherGroupId)
-                    }
-                  >
-                    <Send className="h-4 w-4" />
-                    Enviar anuncio
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
+          <div className="flex flex-wrap gap-3">
+            <Button onClick={() => setAnnouncementModal(role === 'admin' ? 'admin' : 'teacher')}>
+              <Plus className="h-4 w-4" />
+              Nuevo anuncio
+            </Button>
           </div>
         )}
+
+        <Dialog open={announcementModal !== null} onOpenChange={(open) => !open && setAnnouncementModal(null)}>
+          <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
+            <DialogHeader>
+              <DialogTitle>{announcementModal === 'admin' ? 'Anuncio administrativo' : 'Anuncio docente'}</DialogTitle>
+              <DialogDescription>
+                {announcementModal === 'admin' ? 'Envía un mensaje a los usuarios seleccionados.' : 'Envía un mensaje a tus estudiantes.'}
+              </DialogDescription>
+            </DialogHeader>
+
+            {announcementModal === 'admin' ? (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="admin-announcement-title">Título</Label>
+                  <Input id="admin-announcement-title" value={adminTitle} onChange={(event) => setAdminTitle(event.target.value)} placeholder="Ej. Recordatorio institucional" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="admin-announcement-message">Mensaje</Label>
+                  <Textarea id="admin-announcement-message" value={adminMessage} onChange={(event) => setAdminMessage(event.target.value)} rows={5} placeholder="Escribe el mensaje que verán los destinatarios." />
+                </div>
+                <div className="space-y-2">
+                  <Label>Enviar a</Label>
+                  <Select value={targetRole} onValueChange={(value: 'admin' | 'teacher' | 'student' | 'parent' | 'teacher_student' | 'teacher_admin' | 'all') => setTargetRole(value)}>
+                    <SelectTrigger><SelectValue placeholder="Selecciona el rol destinatario" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin">Solo admins</SelectItem>
+                      <SelectItem value="teacher">Solo docentes</SelectItem>
+                      <SelectItem value="student">Solo estudiantes</SelectItem>
+                      <SelectItem value="parent">Solo acudientes</SelectItem>
+                      <SelectItem value="teacher_student">Docentes y estudiantes</SelectItem>
+                      <SelectItem value="teacher_admin">Docentes y admins</SelectItem>
+                      <SelectItem value="all">Todos</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="teacher-announcement-title">Título</Label>
+                  <Input id="teacher-announcement-title" value={teacherTitle} onChange={(event) => setTeacherTitle(event.target.value)} placeholder="Ej. Entrega pendiente" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="teacher-announcement-message">Mensaje</Label>
+                  <Textarea id="teacher-announcement-message" value={teacherMessage} onChange={(event) => setTeacherMessage(event.target.value)} rows={5} placeholder="Escribe el mensaje para tus estudiantes." />
+                </div>
+                <div className="space-y-2">
+                  <Label>Alcance</Label>
+                  <Select value={teacherScope} onValueChange={(value: 'all_my_students' | 'group') => setTeacherScope(value)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all_my_students">Todos mis estudiantes</SelectItem>
+                      <SelectItem value="group">Solo un grupo</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {teacherScope === 'group' && (
+                  <div className="space-y-2">
+                    <Label>Grupo</Label>
+                    <Select value={teacherGroupId} onValueChange={setTeacherGroupId}>
+                      <SelectTrigger><SelectValue placeholder="Selecciona un grupo" /></SelectTrigger>
+                      <SelectContent>{teacherGroups.map((group) => <SelectItem key={group.group_id} value={group.group_id}>{group.label}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setAnnouncementModal(null)}>Cancelar</Button>
+              {announcementModal === 'admin' ? (
+                <Button onClick={() => adminAnnouncementMutation.mutate()} disabled={!adminTitle.trim() || !adminMessage.trim() || adminAnnouncementMutation.isPending}>
+                  <Send className="h-4 w-4" /> Enviar anuncio
+                </Button>
+              ) : (
+                <Button onClick={() => teacherAnnouncementMutation.mutate()} disabled={!teacherTitle.trim() || !teacherMessage.trim() || teacherAnnouncementMutation.isPending || (teacherScope === 'group' && !teacherGroupId)}>
+                  <Send className="h-4 w-4" /> Enviar anuncio
+                </Button>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <Card>
           <CardHeader>
