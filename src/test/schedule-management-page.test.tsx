@@ -22,9 +22,9 @@ const catalog = {
   years: [{ id: 'year-2026', name: 'Año escolar 2026', year: 2026 }],
   grades: [],
   groups: [{ id: 'group-7a', name: '7A' }],
-  areas: [],
-  teachers: [],
-  aulas: [],
+  areas: [{ id: 'area-english', name: 'Inglés' }],
+  teachers: [{ id: 'teacher-1', name: 'Docente Uno' }],
+  aulas: [{ id: 'aula-1', name: 'Aula 1' }],
 };
 
 const draft = {
@@ -35,6 +35,7 @@ const draft = {
   school_days: [1, 2, 3, 4, 5],
   published_at: null,
   availability_windows: [{ window_id: 'window-1', group_id: 'group-7a', start_time: '06:15', end_time: '12:15', group: catalog.groups[0] }],
+  slots: [{ slot_id: 'slot-1', group_id: 'group-7a', area_id: 'area-english', teacher_id: 'teacher-1', aula_id: 'aula-1', weekday: 1, start_time: '06:15', end_time: '08:15' }],
 };
 
 const renderPage = () => {
@@ -63,6 +64,8 @@ describe('ScheduleManagementPage', () => {
     expect(await screen.findByText('Ventanas por grupo')).toBeInTheDocument();
     expect(screen.getByText(/06:15 - 12:15/)).toBeInTheDocument();
     expect(screen.getByText('7A')).toBeInTheDocument();
+    expect(screen.getByText('Inglés')).toBeInTheDocument();
+    expect(screen.getByText(/06:15 - 08:15/)).toBeInTheDocument();
     expect(mocks.createDraft).toHaveBeenCalledWith('year-2026');
   });
 });
