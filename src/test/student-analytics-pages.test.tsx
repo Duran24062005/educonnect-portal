@@ -254,4 +254,21 @@ describe('student analytics pages', () => {
       expect(screen.getAllByText('7.1').length).toBeGreaterThan(0);
     });
   });
+
+  it('keeps student dashboard charts inside their responsive grid', async () => {
+    renderWithRouter(<DashboardPage />);
+
+    expect(await screen.findByTestId('student-dashboard')).toHaveClass('min-w-0');
+    expect(screen.getByTestId('student-dashboard-chart-grid')).toHaveClass('min-w-0');
+
+    const chartCards = screen.getAllByTestId('student-dashboard-chart-card');
+    expect(chartCards).toHaveLength(2);
+    expect(screen.getAllByTestId('student-dashboard-chart-content')).toHaveLength(2);
+    chartCards.forEach((card) => {
+      expect(card).toHaveClass('min-w-0', 'overflow-hidden');
+    });
+    screen.getAllByTestId('student-dashboard-chart-content').forEach((content) => {
+      expect(content).toHaveClass('min-w-0', 'overflow-hidden');
+    });
+  });
 });

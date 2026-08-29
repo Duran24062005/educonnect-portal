@@ -10,10 +10,18 @@ const mocks = vi.hoisted(() => ({
   createDraft: vi.fn(),
   update: vi.fn(),
   publish: vi.fn(),
+  entries: vi.fn(),
+  createEntry: vi.fn(),
+  updateEntry: vi.fn(),
+  archiveEntry: vi.fn(),
+  listAssignments: vi.fn(),
+  createAssignment: vi.fn(),
+  updateAssignment: vi.fn(),
 }));
 
 vi.mock('@/api/calendar', () => ({ calendarApi: { catalog: mocks.catalog } }));
 vi.mock('@/api/schedule', () => ({ scheduleApi: mocks }));
+vi.mock('@/api/teachingAssignments', () => ({ teachingAssignmentsApi: { list: mocks.listAssignments, create: mocks.createAssignment, update: mocks.updateAssignment } }));
 vi.mock('@/layouts/DashboardLayout', () => ({
   default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
@@ -50,10 +58,12 @@ beforeEach(() => {
   mocks.createDraft.mockResolvedValue(draft);
   mocks.update.mockResolvedValue(draft);
   mocks.publish.mockResolvedValue({ ...draft, status: 'published' });
+  mocks.entries.mockResolvedValue({ entries: [{ id: 'entry-1', schedule_id: 'schedule-1', teaching_assignment_id: 'assignment-1', aula_id: 'aula-1', weekday: 1, start_time: '06:15', end_time: '08:15', status: 'active', group: catalog.groups[0], area: catalog.areas[0], teacher: catalog.teachers[0], aula: catalog.aulas[0], campus: null }] });
+  mocks.listAssignments.mockResolvedValue({ assignments: [{ id: 'assignment-1', school_year_id: 'year-2026', status: 'active', group: catalog.groups[0], area: catalog.areas[0], teacher: catalog.teachers[0] }] });
 });
 
 describe('ScheduleManagementPage', () => {
-  it('creates and displays a group availability draft', async () => {
+  it('creates a draft and displays canonical schedule entries', async () => {
     renderPage();
 
     const createButton = await screen.findByRole('button', { name: /crear borrador/i });
@@ -61,11 +71,12 @@ describe('ScheduleManagementPage', () => {
     fireEvent.click(createButton);
 
     await waitFor(() => expect(mocks.createDraft).toHaveBeenCalledWith('year-2026'));
-    expect(await screen.findByText('Ventanas por grupo')).toBeInTheDocument();
-    expect(screen.getByText(/06:15 - 12:15/)).toBeInTheDocument();
+    expect(await screen.findByText('Disponibilidad por grupo')).toBeInTheDocument();
+    expect(screen.getByText(/06:15 – 12:15/)).toBeInTheDocument();
     expect(screen.getByText('7A')).toBeInTheDocument();
-    expect(screen.getByText('Inglés')).toBeInTheDocument();
-    expect(screen.getByText(/06:15 - 08:15/)).toBeInTheDocument();
+    await waitFor(() => expect(mocks.entries).toHaveBeenCalledWith('schedule-1'));
+    expect(await screen.findByText(/Inglés · 7A/)).toBeInTheDocument();
+    expect(await screen.findByText(/06:15 – 08:15/)).toBeInTheDocument();
     expect(mocks.createDraft).toHaveBeenCalledWith('year-2026');
   });
 });

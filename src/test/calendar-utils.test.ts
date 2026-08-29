@@ -1,6 +1,5 @@
-import { addDays, format } from 'date-fns';
 import { describe, expect, it } from 'vitest';
-import { calendarDemoSource, createDemoCalendarSeed } from '@/api/calendarDemo';
+import { createDemoCalendarSeed } from '@/api/calendarDemo';
 import { getNextSession, getSessionPosition, getWeekQueryRange } from '@/lib/calendar-utils';
 
 describe('calendar utilities', () => {
@@ -35,25 +34,11 @@ describe('calendar utilities', () => {
     expect(position).toEqual({ top: '28px', height: '56px' });
   });
 
-  it('reactivates a cancelled demo session without changing its details', async () => {
-    const today = new Date();
-    const result = await calendarDemoSource.list({
-      role: 'admin',
-      from: format(today, 'yyyy-MM-dd'),
-      to: format(addDays(today, 14), 'yyyy-MM-dd'),
-    });
-    const cancelled = result.sessions.find((session) => session.status === 'cancelled');
-
-    expect(cancelled).toBeDefined();
-    if (!cancelled) return;
-
-    const activated = await calendarDemoSource.activate(cancelled.id);
-
-    expect(activated.status).toBe('scheduled');
-    expect(activated.topic).toBe(cancelled.topic);
-    expect(activated.startAt).toBe(cancelled.startAt);
-    expect(activated.aula.id).toBe(cancelled.aula.id);
-
-    await calendarDemoSource.cancel(cancelled.id);
+  it('represents planning separately from the scheduled session', () => {
+    const sessions = createDemoCalendarSeed(referenceDate);
+    expect(sessions[0].lessonPlan?.topic).toBe('Ecuaciones lineales');
+    expect(sessions[0].planningStatus).toBe('completed');
+    expect(sessions[1].lessonPlan).toBeNull();
+    expect(sessions[1].planningStatus).toBe('pending');
   });
 });

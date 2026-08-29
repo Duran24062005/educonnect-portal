@@ -80,7 +80,7 @@ describe('CalendarPage', () => {
     renderCalendar();
 
     expect(await screen.findByRole('heading', { name: 'Calendario' })).toBeInTheDocument();
-    expect((await screen.findAllByText('Ecuaciones lineales')).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText('Matemáticas')).length).toBeGreaterThan(0);
     expect(screen.getByText('Vista semanal')).toBeInTheDocument();
     expect(screen.getByText('Próxima clase')).toBeInTheDocument();
     expect(mocks.catalog).toHaveBeenCalled();
@@ -89,13 +89,13 @@ describe('CalendarPage', () => {
 
   it('switches from the week grid to the agenda without unmounting the screen', async () => {
     renderCalendar();
-    await screen.findAllByText('Ecuaciones lineales');
+    await screen.findAllByText('Matemáticas');
 
     fireEvent.mouseDown(screen.getByRole('tab', { name: 'Agenda' }), { button: 0 });
 
     await waitFor(() => {
       expect(screen.getByText('Agenda de la semana')).toBeInTheDocument();
-      expect(screen.getAllByText('Ecuaciones lineales').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Matemáticas').length).toBeGreaterThan(0);
     });
   });
 
