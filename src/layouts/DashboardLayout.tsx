@@ -201,7 +201,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               </DropdownMenu>
             </div>
           </header>
-          <main className="flex-1 p-4 sm:p-6 overflow-auto">
+          <main className="min-w-0 flex-1 overflow-auto p-4 sm:p-6">
             {children}
           </main>
         </div>

@@ -729,7 +729,7 @@ const StudentDashboard = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div data-testid="student-dashboard" className="min-w-0 space-y-6">
       <div className="rounded-[28px] border border-border/70 bg-[linear-gradient(135deg,rgba(37,99,235,0.12),rgba(255,255,255,0.92)_44%,rgba(16,185,129,0.12))] p-6 dark:border-white/10 dark:bg-[linear-gradient(135deg,rgba(14,165,233,0.22),rgba(15,23,42,0.15)_40%,rgba(16,185,129,0.15))]">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl">
@@ -875,13 +875,13 @@ const StudentDashboard = () => {
         </Card>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-        <Card className="border-border/60">
-          <CardHeader>
+      <div data-testid="student-dashboard-chart-grid" className="grid min-w-0 gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+        <Card data-testid="student-dashboard-chart-card" className="min-w-0 overflow-hidden border-border/60">
+          <CardHeader className="min-w-0">
             <CardTitle className="text-base">Evolución por periodo</CardTitle>
             <p className="text-sm text-muted-foreground">Seguimiento rápido de promedio general y áreas en riesgo.</p>
           </CardHeader>
-          <CardContent>
+          <CardContent data-testid="student-dashboard-chart-content" className="min-w-0 overflow-hidden">
             {isBusy ? (
               <Skeleton className="h-80 w-full" />
             ) : periodCategories.length > 0 ? (
@@ -892,9 +892,9 @@ const StudentDashboard = () => {
           </CardContent>
         </Card>
 
-        <div className="grid gap-4">
-          <Card className="border-border/60">
-            <CardHeader className="flex flex-row items-center justify-between gap-3">
+        <div className="grid min-w-0 gap-4">
+          <Card data-testid="student-dashboard-chart-card" className="min-w-0 overflow-hidden border-border/60">
+            <CardHeader className="min-w-0 flex flex-row items-center justify-between gap-3">
               <div>
                 <CardTitle className="text-base">Áreas destacadas</CardTitle>
                 <p className="mt-1 text-sm text-muted-foreground">Tus mejores promedios finales.</p>
@@ -903,7 +903,7 @@ const StudentDashboard = () => {
                 Ver calificaciones
               </Button>
             </CardHeader>
-            <CardContent>
+            <CardContent data-testid="student-dashboard-chart-content" className="min-w-0 overflow-hidden">
               {isBusy ? (
                 <Skeleton className="h-52 w-full" />
               ) : bestAreas.length > 0 ? (

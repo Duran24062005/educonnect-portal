@@ -18,6 +18,7 @@ import {
   FileUp,
   MapPinned,
   FolderOpen,
+  AlertTriangle,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
@@ -49,6 +50,8 @@ const academicItems = [
   { title: 'Años Escolares', url: '/academic/school-years', icon: Calendar },
   { title: 'Calendario', url: '/calendar', icon: CalendarDays },
   { title: 'Horario semanal', url: '/academic/schedule', icon: CalendarDays },
+  { title: 'Asignaciones docentes', url: '/academic/assignments', icon: Users },
+  { title: 'Excepciones', url: '/academic/exceptions', icon: AlertTriangle },
   { title: 'Asistencia', url: '/attendance', icon: ClipboardList },
   { title: 'Periodos', url: '/academic/periods', icon: Timer },
   { title: 'Grados', url: '/academic/grades', icon: Layers },

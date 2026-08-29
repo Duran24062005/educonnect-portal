@@ -46,7 +46,9 @@ const CalendarAgenda = ({ referenceDate, sessions, onSelectSession }: CalendarAg
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <p className="truncate font-semibold">{session.area.name}</p>
-                          <p className="mt-1 line-clamp-2 text-sm font-medium">{session.topic}</p>
+                          <p className="mt-1 line-clamp-2 text-sm font-medium">{session.lessonPlan?.topic || session.area.name}</p>
+                          <p className="mt-1 text-xs font-semibold opacity-75">{session.status === 'cancelled' ? 'Cancelada' : session.planningStatus === 'completed' ? 'Planeación completa' : session.planningStatus === 'draft' ? 'Borrador' : 'Pendiente de preparar'}</p>
+                          {session.permissions?.canEditLessonPlan && <p className="mt-1 text-xs font-semibold text-primary">Preparar clase</p>}
                         </div>
                         {session.pendingActivities.length > 0 && <CalendarClock className="h-4 w-4 shrink-0" />}
                       </div>

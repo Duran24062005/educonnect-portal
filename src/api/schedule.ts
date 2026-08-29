@@ -32,6 +32,27 @@ export interface ScheduleSlot extends ScheduleSlotInput {
   aula: { _id: string; name: string };
 }
 
+export interface ScheduleEntryInput {
+  teaching_assignment_id: string;
+  aula_id: string;
+  weekday: number;
+  start_time: string;
+  end_time: string;
+  entry_key?: string;
+}
+
+export interface ScheduleEntry extends ScheduleEntryInput {
+  id: string;
+  schedule_id: string;
+  teaching_assignment_id: string;
+  status: 'active' | 'archived';
+  group: { id: string; name: string };
+  area: { id: string; name: string };
+  teacher: { id: string; name: string };
+  aula: { id: string; name: string };
+  campus: { id: string; name: string } | null;
+}
+
 export interface WeeklySchedule {
   id: string;
   version: number;
@@ -80,14 +101,26 @@ const normalizeSchedule = (value: any): WeeklySchedule => ({
   })) : [],
 });
 
+const normalizeEntry = (value: any): ScheduleEntry => ({
+  id: String(value?.id ?? value?._id ?? ''),
+  schedule_id: String(value?.schedule_id ?? ''),
+  teaching_assignment_id: String(value?.teaching_assignment_id ?? ''),
+  aula_id: String(value?.aula?.id ?? value?.aula?._id ?? value?.aula_id ?? ''),
+  weekday: Number(value?.weekday ?? 1),
+  start_time: String(value?.start_time ?? ''),
+  end_time: String(value?.end_time ?? ''),
+  entry_key: value?.entry_key,
+  status: value?.status === 'archived' ? 'archived' : 'active',
+  group: { id: String(value?.group?.id ?? value?.group?._id ?? ''), name: String(value?.group?.name ?? 'Grupo') },
+  area: { id: String(value?.area?.id ?? value?.area?._id ?? ''), name: String(value?.area?.name ?? 'Materia') },
+  teacher: { id: String(value?.teacher?.id ?? value?.teacher?._id ?? ''), name: String(value?.teacher?.name ?? 'Docente') },
+  aula: { id: String(value?.aula?.id ?? value?.aula?._id ?? ''), name: String(value?.aula?.name ?? 'Aula') },
+  campus: value?.campus ? { id: String(value.campus.id ?? value.campus._id ?? ''), name: String(value.campus.name ?? 'Sede') } : null,
+});
+
 export const scheduleApi = {
   list: async (schoolYearId?: string) => {
     const response = await api.get('/api/calendar/schedules', { params: { school_year_id: schoolYearId } });
-    const payload = unwrap<{ schedules: any[] }>(response);
-    return { schedules: (payload?.schedules ?? []).map(normalizeSchedule) };
-  },
-  teacherAvailability: async (schoolYearId?: string) => {
-    const response = await api.get('/api/calendar/schedules/me', { params: { school_year_id: schoolYearId } });
     const payload = unwrap<{ schedules: any[] }>(response);
     return { schedules: (payload?.schedules ?? []).map(normalizeSchedule) };
   },
@@ -95,9 +128,26 @@ export const scheduleApi = {
     const response = await api.post('/api/calendar/schedules/drafts', { school_year_id: assertObjectId(schoolYearId, 'school_year_id') });
     return normalizeSchedule(unwrap(response));
   },
-  update: async (id: string, data: { school_days: number[]; availability_windows: AvailabilityWindowInput[]; slots: ScheduleSlotInput[] }) => {
+  update: async (id: string, data: { school_days: number[]; availability_windows: AvailabilityWindowInput[]; slots?: ScheduleSlotInput[] }) => {
     const response = await api.patch(`/api/calendar/schedules/${assertObjectId(id, 'id')}`, data);
     return normalizeSchedule(unwrap(response));
+  },
+  entries: async (scheduleId: string) => {
+    const response = await api.get(`/api/calendar/schedules/${assertObjectId(scheduleId, 'schedule_id')}/entries`);
+    const payload = unwrap<{ entries: any[] }>(response);
+    return { entries: (payload?.entries ?? []).map(normalizeEntry) };
+  },
+  createEntry: async (scheduleId: string, data: ScheduleEntryInput) => {
+    const response = await api.post(`/api/calendar/schedules/${assertObjectId(scheduleId, 'schedule_id')}/entries`, data);
+    return normalizeEntry(unwrap(response));
+  },
+  updateEntry: async (scheduleId: string, entryId: string, data: Partial<ScheduleEntryInput>) => {
+    const response = await api.patch(`/api/calendar/schedules/${assertObjectId(scheduleId, 'schedule_id')}/entries/${assertObjectId(entryId, 'entry_id')}`, data);
+    return normalizeEntry(unwrap(response));
+  },
+  archiveEntry: async (scheduleId: string, entryId: string) => {
+    const response = await api.delete(`/api/calendar/schedules/${assertObjectId(scheduleId, 'schedule_id')}/entries/${assertObjectId(entryId, 'entry_id')}`);
+    return normalizeEntry(unwrap(response));
   },
   publish: async (id: string) => {
     const response = await api.post(`/api/calendar/schedules/${assertObjectId(id, 'id')}/publish`);

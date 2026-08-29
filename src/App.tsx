@@ -35,6 +35,8 @@ import AttendancePage from './pages/AttendancePage';
 import ImportsPage from './pages/admin/ImportsPage';
 import InstitutionStructurePage from './pages/admin/InstitutionStructurePage';
 import ScheduleManagementPage from './pages/academic/ScheduleManagementPage';
+import TeachingAssignmentsPage from './pages/academic/TeachingAssignmentsPage';
+import ScheduleExceptionsPage from './pages/academic/ScheduleExceptionsPage';
 import PlatformInstitutionsPage from './pages/platform/PlatformInstitutionsPage';
 
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
@@ -120,6 +122,8 @@ const App = () => (
                 <Route path="/imports" element={<ProfileCompleteGuard><RoleRoute roles={['admin']}><ImportsPage /></RoleRoute></ProfileCompleteGuard>} />
                 <Route path="/institution/structure" element={<ProfileCompleteGuard><RoleRoute roles={['admin']}><InstitutionStructurePage /></RoleRoute></ProfileCompleteGuard>} />
                 <Route path="/academic/schedule" element={<ProfileCompleteGuard><RoleRoute roles={['admin']}><ScheduleManagementPage /></RoleRoute></ProfileCompleteGuard>} />
+                <Route path="/academic/assignments" element={<ProfileCompleteGuard><RoleRoute roles={['admin']}><TeachingAssignmentsPage /></RoleRoute></ProfileCompleteGuard>} />
+                <Route path="/academic/exceptions" element={<ProfileCompleteGuard><RoleRoute roles={['admin']}><ScheduleExceptionsPage /></RoleRoute></ProfileCompleteGuard>} />
                 <Route path="/academic/school-years" element={<ProfileCompleteGuard><RoleRoute roles={['admin']}><SchoolYearsPage /></RoleRoute></ProfileCompleteGuard>} />
                 <Route path="/academic/periods" element={<ProfileCompleteGuard><RoleRoute roles={['admin']}><PeriodsPage /></RoleRoute></ProfileCompleteGuard>} />
                 <Route path="/academic/grades" element={<ProfileCompleteGuard><RoleRoute roles={['admin']}><GradesPage /></RoleRoute></ProfileCompleteGuard>} />

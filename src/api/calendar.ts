@@ -2,7 +2,7 @@ import api from './axios';
 import { calendarDemoCatalog, calendarDemoSource } from './calendarDemo';
 
 export type CalendarRole = 'admin' | 'teacher' | 'student' | 'parent';
-export type CalendarSessionStatus = 'scheduled' | 'cancelled';
+export type CalendarSessionStatus = 'scheduled' | 'completed' | 'cancelled';
 export type CalendarActivityStatus = 'pending' | 'overdue' | 'submitted';
 
 export interface CalendarEntity {
@@ -21,6 +21,25 @@ export interface CalendarPendingActivity {
   status: CalendarActivityStatus;
 }
 
+export type LessonPlanStatus = 'draft' | 'completed';
+
+export interface LessonPlan {
+  id: string;
+  sessionId: string;
+  topic: string;
+  learningObjective: string;
+  description: string;
+  teacherNotes: string;
+  homework: string;
+  status: LessonPlanStatus;
+}
+
+export interface CalendarPermissions {
+  canEditSchedule: boolean;
+  canEditLessonPlan: boolean;
+  scheduleEditReason: string | null;
+}
+
 export interface CalendarSession {
   id: string;
   type: 'class_session';
@@ -28,6 +47,7 @@ export interface CalendarSession {
   endAt: string;
   status: CalendarSessionStatus;
   scheduleId?: string | null;
+  scheduleEntryId?: string | null;
   scheduleSlotId?: string | null;
   scheduleWindowId?: string | null;
   occurrenceDate?: string | null;
@@ -40,18 +60,10 @@ export interface CalendarSession {
   teacher: CalendarEntity;
   aula: CalendarEntity;
   topic: string;
+  lessonPlan: LessonPlan | null;
+  planningStatus: LessonPlanStatus | 'pending';
+  permissions: CalendarPermissions;
   pendingActivities: CalendarPendingActivity[];
-}
-
-export interface CalendarSessionInput {
-  schoolYearId: string;
-  groupId: string;
-  areaId: string;
-  teacherId: string;
-  aulaId: string;
-  startAt: string;
-  endAt: string;
-  topic: string;
 }
 
 export interface CalendarCatalog {
@@ -85,10 +97,7 @@ export interface CalendarResponse {
 export interface CalendarDataSource {
   catalog(role: CalendarRole, schoolYearId?: string): Promise<CalendarCatalog>;
   list(query: CalendarQuery): Promise<CalendarResponse>;
-  create(input: CalendarSessionInput): Promise<CalendarSession>;
-  update(id: string, input: CalendarSessionInput): Promise<CalendarSession>;
-  cancel(id: string): Promise<CalendarSession>;
-  activate(id: string): Promise<CalendarSession>;
+  getSession(id: string): Promise<CalendarSession>;
 }
 
 export const CALENDAR_DATA_SOURCE = import.meta.env.VITE_CALENDAR_DATA_SOURCE === 'api' ? 'api' : 'demo';
@@ -107,8 +116,9 @@ const normalizeSession = (session: any): CalendarSession => ({
   type: 'class_session',
   startAt: session.startAt ?? session.start_at,
   endAt: session.endAt ?? session.end_at,
-  status: session.status === 'cancelled' ? 'cancelled' : 'scheduled',
+  status: session.status === 'cancelled' ? 'cancelled' : session.status === 'completed' ? 'completed' : 'scheduled',
   scheduleId: session.scheduleId ?? session.schedule_id ?? null,
+  scheduleEntryId: session.scheduleEntryId ?? session.schedule_entry_id ?? null,
   scheduleSlotId: session.scheduleSlotId ?? session.schedule_slot_id ?? null,
   scheduleWindowId: session.scheduleWindowId ?? session.schedule_window_id ?? null,
   occurrenceDate: session.occurrenceDate ?? session.occurrence_date ?? null,
@@ -124,6 +134,22 @@ const normalizeSession = (session: any): CalendarSession => ({
   teacher: normalizeEntity(session.teacher ?? session.teacher_id, 'Docente'),
   aula: normalizeEntity(session.aula ?? session.aula_id, 'Aula'),
   topic: String(session.topic ?? ''),
+  lessonPlan: session.lessonPlan || session.lesson_plan ? {
+    id: getId(session.lessonPlan ?? session.lesson_plan),
+    sessionId: getId((session.lessonPlan ?? session.lesson_plan)?.session_id) || getId(session),
+    topic: String((session.lessonPlan ?? session.lesson_plan)?.topic ?? ''),
+    learningObjective: String((session.lessonPlan ?? session.lesson_plan)?.learningObjective ?? (session.lessonPlan ?? session.lesson_plan)?.learning_objective ?? ''),
+    description: String((session.lessonPlan ?? session.lesson_plan)?.description ?? ''),
+    teacherNotes: String((session.lessonPlan ?? session.lesson_plan)?.teacherNotes ?? (session.lessonPlan ?? session.lesson_plan)?.teacher_notes ?? ''),
+    homework: String((session.lessonPlan ?? session.lesson_plan)?.homework ?? ''),
+    status: (session.lessonPlan ?? session.lesson_plan)?.status === 'completed' ? 'completed' : 'draft',
+  } : null,
+  planningStatus: session.planningStatus ?? session.planning_status ?? (session.lessonPlan ?? session.lesson_plan)?.status ?? 'pending',
+  permissions: {
+    canEditSchedule: Boolean(session.permissions?.canEditSchedule ?? session.permissions?.can_edit_schedule),
+    canEditLessonPlan: Boolean(session.permissions?.canEditLessonPlan ?? session.permissions?.can_edit_lesson_plan),
+    scheduleEditReason: session.permissions?.scheduleEditReason ?? session.permissions?.schedule_edit_reason ?? null,
+  },
   pendingActivities: (session.pendingActivities ?? session.pending_activities ?? []).map((activity: any) => ({
     id: getId(activity),
     title: String(activity.title ?? 'Actividad'),
@@ -178,17 +204,6 @@ const toParams = (query: CalendarQuery) => ({
   aula_id: query.aulaId,
 });
 
-const toPayload = (input: CalendarSessionInput) => ({
-  school_year_id: input.schoolYearId,
-  group_id: input.groupId,
-  area_id: input.areaId,
-  teacher_id: input.teacherId,
-  aula_id: input.aulaId,
-  start_at: input.startAt,
-  end_at: input.endAt,
-  topic: input.topic,
-});
-
 const apiSource: CalendarDataSource = {
   async catalog(role, schoolYearId) {
     const response = await api.get('/api/calendar/catalog', {
@@ -201,20 +216,8 @@ const apiSource: CalendarDataSource = {
     const response = await api.get(endpoint, { params: toParams(query) });
     return normalizeResponse(response, query);
   },
-  async create(input: CalendarSessionInput) {
-    const response = await api.post('/api/calendar/sessions', toPayload(input));
-    return normalizeSession(unwrap(response)?.session ?? unwrap(response));
-  },
-  async update(id: string, input: CalendarSessionInput) {
-    const response = await api.patch(`/api/calendar/sessions/${id}`, toPayload(input));
-    return normalizeSession(unwrap(response)?.session ?? unwrap(response));
-  },
-  async cancel(id: string) {
-    const response = await api.patch(`/api/calendar/sessions/${id}`, { status: 'cancelled' });
-    return normalizeSession(unwrap(response)?.session ?? unwrap(response));
-  },
-  async activate(id: string) {
-    const response = await api.patch(`/api/calendar/sessions/${id}`, { status: 'scheduled' });
+  async getSession(id: string) {
+    const response = await api.get(`/api/calendar/sessions/${id}`);
     return normalizeSession(unwrap(response)?.session ?? unwrap(response));
   },
 };
@@ -230,6 +233,12 @@ const demoSource: CalendarDataSource = {
       groups: calendarDemoCatalog.groups.filter((item) => ['group-7a', 'group-8a'].includes(item.id)),
       areas: calendarDemoCatalog.areas.filter((item) => item.id === 'area-math'),
     };
+  },
+  async getSession(id) {
+    const response = await calendarDemoSource.list({ role: 'admin', from: '2000-01-01', to: '2100-01-01' });
+    const session = response.sessions.find((item) => item.id === id);
+    if (!session) throw new Error('La sesión demo no existe.');
+    return session;
   },
 };
 

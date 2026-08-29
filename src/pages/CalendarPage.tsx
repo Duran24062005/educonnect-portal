@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CalendarDays, ChevronLeft, ChevronRight, Filter, List, Plus, RotateCcw, SlidersHorizontal, X } from 'lucide-react';
-import { toast } from 'sonner';
+import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
+import { CalendarDays, ChevronLeft, ChevronRight, Filter, List, RotateCcw, SlidersHorizontal, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -11,12 +11,12 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { useAuthStore } from '@/store/auth';
 import { normalizeRole } from '@/lib/auth';
+import { useIsMobile } from '@/hooks/use-mobile';
 import {
   calendarApi,
   type CalendarQuery,
   type CalendarRole,
   type CalendarSession,
-  type CalendarSessionInput,
 } from '@/api/calendar';
 import CalendarAgenda from '@/components/calendar/CalendarAgenda';
 import CalendarSessionDialog from '@/components/calendar/CalendarSessionDialog';
@@ -49,9 +49,10 @@ const initialFilters: CalendarFilters = {
 
 const CalendarPage = () => {
   const user = useAuthStore((state) => state.user);
+  const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const rawRole = normalizeRole(user?.role);
   const role: CalendarRole = rawRole === 'admin' || rawRole === 'teacher' || rawRole === 'parent' ? rawRole : 'student';
-  const queryClient = useQueryClient();
   const [referenceDate, setReferenceDate] = useState(new Date());
   const [schoolYearId, setSchoolYearId] = useState('');
   const [view, setView] = useState<CalendarView>('week');
@@ -78,6 +79,10 @@ const CalendarPage = () => {
     if (!schoolYearId && catalog.years[0]?.id) setSchoolYearId(catalog.years[0].id);
   }, [catalog.years, schoolYearId]);
 
+  useEffect(() => {
+    if (isMobile) setView('agenda');
+  }, [isMobile]);
+
   const query = useMemo<CalendarQuery>(() => ({
     role,
     from: range.from,
@@ -97,61 +102,18 @@ const CalendarPage = () => {
     staleTime: 30_000,
   });
 
-  const saveMutation = useMutation({
-    mutationFn: ({ input, sessionId }: { input: CalendarSessionInput; sessionId?: string }) => (
-      sessionId ? calendarApi.update(sessionId, input) : calendarApi.create(input)
-    ),
-    onSuccess: async (_session, variables) => {
-      await queryClient.invalidateQueries({ queryKey: ['calendar'] });
-      toast.success(variables.sessionId ? 'Sesión actualizada' : 'Sesión creada');
-    },
-  });
-
-  const cancelMutation = useMutation({
-    mutationFn: (session: CalendarSession) => calendarApi.cancel(session.id),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['calendar'] });
-      toast.success('Sesión cancelada');
-    },
-  });
-
-  const activateMutation = useMutation({
-    mutationFn: (session: CalendarSession) => calendarApi.activate(session.id),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['calendar'] });
-      toast.success('Sesión reactivada');
-    },
-  });
   const sessions = calendarQuery.data?.sessions || [];
   const nextSession = getNextSession(sessions);
   const hasFilters = Object.values(filters).some(Boolean);
-  const canEditSession = (session: CalendarSession | null) => Boolean(session && (role === 'admin' || (role === 'teacher' && session.source === 'schedule')));
 
   const retryCalendar = () => {
     void catalogQuery.refetch();
     void calendarQuery.refetch();
   };
 
-  const openCreate = () => {
-    setSelectedSession(null);
-    setDialogOpen(true);
-  };
-
   const openSession = (session: CalendarSession) => {
     setSelectedSession(session);
     setDialogOpen(true);
-  };
-
-  const handleSave = async (input: CalendarSessionInput, sessionId?: string) => {
-    await saveMutation.mutateAsync({ input, sessionId });
-  };
-
-  const handleCancel = async (session: CalendarSession) => {
-    await cancelMutation.mutateAsync(session);
-  };
-
-  const handleActivate = async (session: CalendarSession) => {
-    await activateMutation.mutateAsync(session);
   };
 
   const setFilter = (key: keyof CalendarFilters, value: string) => {
@@ -167,16 +129,15 @@ const CalendarPage = () => {
               <CalendarDays className="h-4 w-4" />
               Agenda académica
             </div>
-            <h1 className="mt-2 text-3xl font-display font-extrabold tracking-tight">Calendario</h1>
+            <h1 className="mt-2 text-3xl font-display font-extrabold tracking-tight">{role === 'teacher' ? 'Mis clases' : role === 'student' ? 'Mi horario' : role === 'parent' ? 'Calendario familiar' : 'Calendario'}</h1>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-              Consulta las clases de la semana, sus responsables y los temas que siguen en agenda.
+              {role === 'admin' ? 'Supervisa las clases materializadas y administra el horario institucional.' : 'Consulta las clases asignadas y su planeación pedagógica disponible.'}
             </p>
           </div>
-          {(role === 'admin' || role === 'teacher') && (
-            <Button onClick={openCreate} disabled={catalogQuery.isLoading || catalog.groups.length === 0} className="w-full sm:w-auto">
-              <Plus className="h-4 w-4" />Nueva sesión
-            </Button>
-          )}
+          <div className="flex flex-wrap gap-2">
+            {role === 'admin' && <><Button variant="outline" onClick={() => navigate('/academic/assignments')}>Asignaciones docentes</Button><Button variant="outline" onClick={() => navigate('/academic/schedule')}>Administrar horario</Button></>}
+            {role === 'teacher' && <Badge variant="outline">Mis clases asignadas</Badge>}
+          </div>
         </header>
 
         <section className="rounded-xl border border-border/70 bg-card p-3 shadow-sm sm:p-4">
@@ -284,7 +245,7 @@ const CalendarPage = () => {
                     <button type="button" onClick={() => openSession(nextSession)} className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                       <Badge variant={nextSession.status === 'cancelled' ? 'secondary' : 'default'}>{nextSession.status === 'cancelled' ? 'Cancelada' : formatSessionDate(nextSession.startAt)}</Badge>
                       <p className="mt-3 text-xl font-display font-bold">{nextSession.area.name}</p>
-                      <p className="mt-1 text-sm text-muted-foreground">{nextSession.topic}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">{nextSession.group.name} · {nextSession.aula.name}</p>
                       <p className="mt-4 text-sm font-semibold">{new Date(nextSession.startAt).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })} - {new Date(nextSession.endAt).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}</p>
                       <p className="mt-1 text-xs text-muted-foreground">{nextSession.teacher.name} · {nextSession.aula.name}</p>
                       {nextSession.pendingActivities.length > 0 && <p className="mt-4 text-xs font-semibold text-primary">{nextSession.pendingActivities.length} actividad pendiente relacionada</p>}
@@ -321,12 +282,6 @@ const CalendarPage = () => {
           onOpenChange={setDialogOpen}
           session={selectedSession}
           role={role}
-          catalog={catalog}
-          schoolYearId={schoolYearId}
-          canEdit={canEditSession(selectedSession)}
-          onSave={handleSave}
-          onCancelSession={handleCancel}
-          onActivateSession={handleActivate}
         />
       )}
     </DashboardLayout>

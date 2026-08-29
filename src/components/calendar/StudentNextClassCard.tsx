@@ -51,7 +51,7 @@ const StudentNextClassCard = ({ role = 'student' }: NextClassCardProps) => {
               <div>
                 <Badge variant="default">{formatSessionDate(nextSession.startAt)}</Badge>
                 <h3 className="mt-3 text-2xl font-display font-bold">{nextSession.area.name}</h3>
-                <p className="mt-1 text-sm text-muted-foreground">{nextSession.topic}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{nextSession.lessonPlan?.topic || 'Planeación aún no disponible'}</p>
               </div>
               <div className="space-y-2 text-sm text-muted-foreground sm:text-right">
                 <p className="inline-flex items-center gap-2 sm:flex sm:justify-end"><Clock3 className="h-4 w-4 text-primary" />{formatSessionTime(nextSession.startAt)} - {formatSessionTime(nextSession.endAt)}</p>

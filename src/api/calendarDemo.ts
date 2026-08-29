@@ -8,7 +8,6 @@ import type {
   CalendarResponse,
   CalendarSchoolYear,
   CalendarSession,
-  CalendarSessionInput,
 } from './calendar';
 
 const DEMO_YEAR: CalendarSchoolYear = { id: 'year-2026', name: 'Año escolar 2026', year: 2026 };
@@ -61,7 +60,7 @@ const activity = (
   status: CalendarActivityStatus = 'pending',
 ): CalendarPendingActivity => ({ id, title, dueAt, status });
 
-export const createDemoCalendarSeed = (referenceDate = new Date()): CalendarSession[] => [
+export const createDemoCalendarSeed = (referenceDate = new Date()): CalendarSession[] => ([
   {
     id: 'demo-session-001',
     type: 'class_session',
@@ -182,7 +181,15 @@ export const createDemoCalendarSeed = (referenceDate = new Date()): CalendarSess
     topic: 'Ecosistemas y relaciones tróficas',
     pendingActivities: [],
   },
-];
+ ] as Array<Omit<CalendarSession, 'lessonPlan' | 'planningStatus' | 'permissions'>>).map((session) => ({
+  ...session,
+  lessonPlan: session.id === 'demo-session-001' ? {
+    id: 'demo-plan-001', sessionId: session.id, topic: session.topic, learningObjective: 'Resolver ecuaciones lineales con diferentes representaciones.',
+    description: 'Exploración guiada y práctica individual.', teacherNotes: 'Revisar los procedimientos que generan más dudas.', homework: 'Resolver la guía 1.', status: 'completed' as const,
+  } : null,
+  planningStatus: session.id === 'demo-session-001' ? 'completed' as const : 'pending' as const,
+  permissions: { canEditSchedule: false, canEditLessonPlan: session.teacher.id === DEMO_TEACHER_ID, scheduleEditReason: 'El horario es administrado por la institución.' },
+}));
 
 const getDateBounds = (query: CalendarQuery) => ({
   from: startOfDay(new Date(query.from)).getTime(),
@@ -210,9 +217,7 @@ const uniqueActivities = (sessions: CalendarSession[]) => {
   return Array.from(activityMap.values());
 };
 
-let demoSessions = createDemoCalendarSeed();
-let nextDemoId = 100;
-
+const demoSessions = createDemoCalendarSeed();
 export const calendarDemoSource = {
   async catalog() {
     return calendarDemoCatalog;
@@ -230,75 +235,6 @@ export const calendarDemoSource = {
     });
   },
 
-  async create(input: CalendarSessionInput) {
-    if (input.teacherId === DEMO_TEACHER_ID && (!['group-7a', 'group-8a'].includes(input.groupId) || input.areaId !== 'area-math')) {
-      throw new Error('El docente demo solo está asignado a Matemáticas en los grupos 7A y 8A.');
-    }
-
-    const source = demoSessions.find((session) => session.group.id === input.groupId && session.area.id === input.areaId) || demoSessions[0];
-    const selectedGroup = groups.find((item) => item.id === input.groupId) || source.group;
-    const selectedArea = areas.find((item) => item.id === input.areaId) || source.area;
-    const selectedTeacher = teachers.find((item) => item.id === input.teacherId) || source.teacher;
-    const selectedAula = aulas.find((item) => item.id === input.aulaId) || source.aula;
-    const selectedGrade = grades.find((item) => item.id === ({ 'group-6b': 'grade-6', 'group-7a': 'grade-7', 'group-8a': 'grade-8' } as Record<string, string>)[selectedGroup.id]) || source.grade;
-
-    const session: CalendarSession = {
-      ...clone(source),
-      id: `demo-session-${nextDemoId++}`,
-      startAt: input.startAt,
-      endAt: input.endAt,
-      status: 'scheduled',
-      topic: input.topic,
-      schoolYear: DEMO_YEAR,
-      grade: selectedGrade,
-      group: selectedGroup,
-      area: selectedArea,
-      teacher: selectedTeacher,
-      aula: selectedAula,
-      pendingActivities: [],
-    };
-
-    demoSessions = [...demoSessions, session];
-    return clone(session);
-  },
-
-  async update(id: string, input: CalendarSessionInput) {
-    const current = demoSessions.find((session) => session.id === id);
-    if (!current) throw new Error('La sesión demo no existe.');
-    if (input.teacherId === DEMO_TEACHER_ID && (!['group-7a', 'group-8a'].includes(input.groupId) || input.areaId !== 'area-math')) {
-      throw new Error('El docente demo solo está asignado a Matemáticas en los grupos 7A y 8A.');
-    }
-
-    const updated: CalendarSession = {
-      ...current,
-      startAt: input.startAt,
-      endAt: input.endAt,
-      topic: input.topic,
-      group: groups.find((item) => item.id === input.groupId) || current.group,
-      area: areas.find((item) => item.id === input.areaId) || current.area,
-      teacher: teachers.find((item) => item.id === input.teacherId) || current.teacher,
-      aula: aulas.find((item) => item.id === input.aulaId) || current.aula,
-    };
-
-    demoSessions = demoSessions.map((session) => session.id === id ? updated : session);
-    return clone(updated);
-  },
-
-  async cancel(id: string) {
-    const current = demoSessions.find((session) => session.id === id);
-    if (!current) throw new Error('La sesión demo no existe.');
-    const updated = { ...current, status: 'cancelled' as const };
-    demoSessions = demoSessions.map((session) => session.id === id ? updated : session);
-    return clone(updated);
-  },
-
-  async activate(id: string) {
-    const current = demoSessions.find((session) => session.id === id);
-    if (!current) throw new Error('La sesión demo no existe.');
-    const updated = { ...current, status: 'scheduled' as const };
-    demoSessions = demoSessions.map((session) => session.id === id ? updated : session);
-    return clone(updated);
-  },
 };
 
 export const calendarDemoCatalog: CalendarCatalog = {

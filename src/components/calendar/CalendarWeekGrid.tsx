@@ -79,16 +79,20 @@ const CalendarWeekGrid = ({ referenceDate, sessions, onSelectSession }: Calendar
                       className={`absolute inset-x-1 z-10 overflow-hidden rounded-md border px-2 py-1.5 text-left text-xs shadow-sm transition hover:z-20 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${tone}`}
                       style={position}
                       onClick={() => onSelectSession(session)}
-                      aria-label={`${session.area.name}, ${session.topic}, ${session.group.name}, ${format(new Date(session.startAt), 'HH:mm')}`}
+                      aria-label={`${session.area.name}, ${session.group.name}, ${format(new Date(session.startAt), 'HH:mm')}`}
                     >
                       <span className="flex items-center justify-between gap-1 font-semibold">
                         <span className="truncate">{session.area.name}</span>
                         {session.pendingActivities.length > 0 && <CalendarClock className="h-3.5 w-3.5 shrink-0" />}
                       </span>
-                      <span className="mt-0.5 block truncate font-medium">{session.topic}</span>
+                      <span className="mt-0.5 block truncate font-medium">{session.lessonPlan?.topic || session.area.name}</span>
                       <span className="mt-1 block truncate text-[10px] opacity-75">
                         {format(new Date(session.startAt), 'HH:mm')} - {format(new Date(session.endAt), 'HH:mm')} · {session.group.name}
                       </span>
+                      <span className="mt-1 block truncate text-[10px] font-semibold opacity-80">
+                        {session.status === 'cancelled' ? 'Cancelada' : session.planningStatus === 'completed' ? 'Planeación completa' : session.planningStatus === 'draft' ? 'Borrador' : 'Pendiente de preparar'}
+                      </span>
+                      {session.permissions?.canEditLessonPlan && <span className="mt-1 block truncate text-[10px] font-semibold text-primary">Preparar clase</span>}
                     </button>
                   );
                 })}
