@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { extractApiError, mapErrorDetailsByField } from '@/lib/http';
-import { isBlockedAccountStatus } from '@/lib/auth';
+import { getLandingRoute, isBlockedAccountStatus } from '@/lib/auth';
 import { setStoredAccountState } from '@/lib/account-state';
 
 const schema = z.object({
@@ -56,7 +56,7 @@ const LoginPage = () => {
         navigate('/account-status');
       } else {
         toast.success('¡Bienvenido de vuelta!');
-        navigate('/dashboard');
+        navigate(getLandingRoute(normalizedUser.role));
       }
     } catch (err: any) {
       const apiError = extractApiError(err);

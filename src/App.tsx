@@ -35,6 +35,7 @@ import AttendancePage from './pages/AttendancePage';
 import ImportsPage from './pages/admin/ImportsPage';
 import InstitutionStructurePage from './pages/admin/InstitutionStructurePage';
 import ScheduleManagementPage from './pages/academic/ScheduleManagementPage';
+import PlatformInstitutionsPage from './pages/platform/PlatformInstitutionsPage';
 
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const GroupDetailPage = lazy(() => import('./pages/groups/GroupDetailPage'));
@@ -113,6 +114,7 @@ const App = () => (
                 <Route path="/attendance" element={<ProfileCompleteGuard><RoleRoute roles={['admin', 'teacher']}><AttendancePage /></RoleRoute></ProfileCompleteGuard>} />
 
                 {/* Admin routes */}
+                <Route path="/platform/institutions" element={<ProfileCompleteGuard><RoleRoute roles={['superadmin']}><PlatformInstitutionsPage /></RoleRoute></ProfileCompleteGuard>} />
                 <Route path="/users" element={<ProfileCompleteGuard><RoleRoute roles={['admin']}><UsersPage /></RoleRoute></ProfileCompleteGuard>} />
                 <Route path="/users/pending" element={<ProfileCompleteGuard><RoleRoute roles={['admin']}><PendingUsersPage /></RoleRoute></ProfileCompleteGuard>} />
                 <Route path="/imports" element={<ProfileCompleteGuard><RoleRoute roles={['admin']}><ImportsPage /></RoleRoute></ProfileCompleteGuard>} />

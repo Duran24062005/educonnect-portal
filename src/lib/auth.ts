@@ -1,4 +1,4 @@
-export type NormalizedRole = 'admin' | 'teacher' | 'student' | 'parent';
+export type NormalizedRole = 'admin' | 'superadmin' | 'teacher' | 'student' | 'parent';
 export type ApiRole = NormalizedRole | 'guardian';
 export type AccountStatus = 'active' | 'pending' | 'inactive' | 'blocked' | 'egresado';
 
@@ -7,7 +7,7 @@ export const normalizeRole = (role?: string | null): NormalizedRole | undefined 
 
   const normalized = role.toLowerCase();
   if (normalized === 'guardian') return 'parent';
-  if (normalized === 'admin' || normalized === 'teacher' || normalized === 'student' || normalized === 'parent') {
+  if (normalized === 'admin' || normalized === 'superadmin' || normalized === 'teacher' || normalized === 'student' || normalized === 'parent') {
     return normalized;
   }
 
@@ -27,6 +27,8 @@ export const getRoleLabel = (role?: string | null) => {
   switch (normalizeRole(role)) {
     case 'admin':
       return 'Admin';
+    case 'superadmin':
+      return 'SuperAdmin';
     case 'teacher':
       return 'Teacher';
     case 'student':
@@ -42,6 +44,8 @@ export const getDashboardLabel = (role?: string | null) => {
   switch (normalizeRole(role)) {
     case 'admin':
       return 'Administración';
+    case 'superadmin':
+      return 'Operaciones de plataforma';
     case 'teacher':
       return 'Docente';
     case 'student':
@@ -55,3 +59,6 @@ export const getDashboardLabel = (role?: string | null) => {
 
 export const isBlockedAccountStatus = (status?: string | null) =>
   ['pending', 'inactive', 'blocked'].includes(normalizeStatus(status) ?? '');
+
+export const getLandingRoute = (role?: string | null) =>
+  normalizeRole(role) === 'superadmin' ? '/platform/institutions' : '/dashboard';
