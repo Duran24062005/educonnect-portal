@@ -36,4 +36,9 @@ describe('AppSidebar', () => {
     expect(screen.getByText('Calendario')).toBeInTheDocument();
     if (role === 'Teacher') expect(screen.getByText('Asistencia')).toBeInTheDocument();
   });
+
+  it.each(['Teacher', 'Student'])('shows materials for %s accounts', (role) => {
+    renderSidebar(role);
+    expect(screen.getByText('Materiales')).toBeInTheDocument();
+  });
 });

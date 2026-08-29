@@ -48,6 +48,7 @@ const MyGradesPage = lazy(() => import('./pages/student/MyGradesPage'));
 const MyResultsPage = lazy(() => import('./pages/student/MyResultsPage'));
 const StudentBulletinPage = lazy(() => import('./pages/student/StudentBulletinPage'));
 const StudentActivityDetailPage = lazy(() => import('./pages/student/StudentActivityDetailPage'));
+const MaterialsPage = lazy(() => import('./pages/MaterialsPage'));
 const EvaluationStatsPage = lazy(() => import('./pages/EvaluationStatsPage'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 const CalendarPage = lazy(() => import('./pages/CalendarPage'));
@@ -135,6 +136,7 @@ const App = () => (
                 <Route path="/groups/:id/grade-items" element={<ProfileCompleteGuard><RoleRoute roles={['teacher']}><GroupGradeItemsPage /></RoleRoute></ProfileCompleteGuard>} />
                 <Route path="/groups/:id/scores" element={<ProfileCompleteGuard><RoleRoute roles={['teacher']}><GroupScoresPage /></RoleRoute></ProfileCompleteGuard>} />
                 <Route path="/period-results" element={<ProfileCompleteGuard><RoleRoute roles={['teacher']}><PeriodResultsPage /></RoleRoute></ProfileCompleteGuard>} />
+                <Route path="/materials" element={<ProfileCompleteGuard><RoleRoute roles={['teacher', 'student']}><MaterialsPage /></RoleRoute></ProfileCompleteGuard>} />
 
                 {/* Student routes */}
                 <Route path="/my-activities" element={<ProfileCompleteGuard><RoleRoute roles={['student']}><MyActivitiesPage /></RoleRoute></ProfileCompleteGuard>} />

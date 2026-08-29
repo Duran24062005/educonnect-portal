@@ -86,6 +86,11 @@ export const scheduleApi = {
     const payload = unwrap<{ schedules: any[] }>(response);
     return { schedules: (payload?.schedules ?? []).map(normalizeSchedule) };
   },
+  teacherAvailability: async (schoolYearId?: string) => {
+    const response = await api.get('/api/calendar/schedules/me', { params: { school_year_id: schoolYearId } });
+    const payload = unwrap<{ schedules: any[] }>(response);
+    return { schedules: (payload?.schedules ?? []).map(normalizeSchedule) };
+  },
   createDraft: async (schoolYearId: string) => {
     const response = await api.post('/api/calendar/schedules/drafts', { school_year_id: assertObjectId(schoolYearId, 'school_year_id') });
     return normalizeSchedule(unwrap(response));

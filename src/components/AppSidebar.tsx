@@ -17,6 +17,7 @@ import {
   Bell,
   FileUp,
   MapPinned,
+  FolderOpen,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
@@ -69,6 +70,7 @@ const teacherItems = [
   { title: 'Asistencia', url: '/attendance', icon: ClipboardList },
   { title: 'Mis Grupos', url: '/my-groups', icon: School },
   { title: 'Resultados', url: '/period-results', icon: BarChart3 },
+  { title: 'Materiales', url: '/materials', icon: FolderOpen },
 ];
 
 const studentItems = [
@@ -76,6 +78,7 @@ const studentItems = [
   { title: 'Notificaciones', url: '/notifications', icon: Bell },
   { title: 'Calendario', url: '/calendar', icon: CalendarDays },
   { title: 'Mis Actividades', url: '/my-activities', icon: FileText },
+  { title: 'Materiales', url: '/materials', icon: FolderOpen },
   { title: 'Mis Calificaciones', url: '/my-grades', icon: ClipboardList },
   { title: 'Mis Resultados', url: '/my-results', icon: BarChart3 },
   { title: 'Mis Boletines', url: '/my-bulletins', icon: FileText },

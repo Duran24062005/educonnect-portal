@@ -22,6 +22,8 @@ yarn typecheck
 yarn build:ci
 ```
 
+La cobertura específica de materiales está en `src/test/materials-page.test.tsx` e incluye consulta estudiantil, apertura segura de enlaces y flujo docente de publicación. El detalle del calendario conserva su cobertura en `src/test/calendar-page.test.tsx`.
+
 La suite no reemplaza la comprobación de autenticación. Para una revisión manual en local, arrancar el portal con `VITE_CALENDAR_DATA_SOURCE=demo`, iniciar sesión con un usuario de prueba y abrir `/calendar`. Para la integración API, comprobar primero `GET /health/ready` y que `GET /api/auth/me` responda con una sesión válida.
 
 ## Contexto institucional

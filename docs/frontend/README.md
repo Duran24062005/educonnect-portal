@@ -37,6 +37,7 @@ Esta primera version:
 - [modules/student.md](./modules/student.md)
 - [modules/guardian.md](./modules/guardian.md)
 - [modules/calendar.md](./modules/calendar.md)
+- [modules/materials.md](./modules/materials.md)
 - [modules/attendance.md](./modules/attendance.md)
 - [modules/imports.md](./modules/imports.md)
 - [modules/academic.md](./modules/academic.md)
