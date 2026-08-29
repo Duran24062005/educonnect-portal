@@ -89,6 +89,13 @@ export const materialsApi = {
     const response = await api.get('/api/materials/teacher/me', { params: toFilterParams(filters) });
     return unwrap<{ materials: Material[] }>(response);
   },
+  async getTeacherMaterial(materialId: string) {
+    const validMaterialId = assertObjectId(materialId, 'material_id');
+    const result = await this.getTeacherMaterials();
+    const material = result.materials.find((item) => item._id === validMaterialId);
+    if (!material) throw new Error('Material no encontrado');
+    return { material };
+  },
   async getTeacherSessions(filters: MaterialSessionFilters = {}) {
     const response = await api.get('/api/materials/teacher/me/sessions', { params: toSessionParams(filters) });
     return unwrap<{ sessions: MaterialSession[] }>(response);

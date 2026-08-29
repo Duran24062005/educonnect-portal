@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { BookOpen, ExternalLink, File, FileUp, FolderOpen, Link2, Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -37,6 +37,7 @@ const sizeLabel = (bytes: number) => bytes > 1024 * 1024 ? `${(bytes / (1024 * 1
 const MaterialsPage = () => {
   const role = normalizeRole(useAuthStore((state) => state.user?.role));
   const isTeacher = role === 'teacher';
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const [groupFilter, setGroupFilter] = useState('');
@@ -154,7 +155,7 @@ const MaterialsPage = () => {
           <Card className="border-dashed border-border/80"><CardContent className="flex min-h-64 flex-col items-center justify-center px-6 text-center"><FolderOpen className="h-10 w-10 text-primary/70" /><h2 className="mt-4 font-display text-xl font-bold">Aún no hay materiales</h2><p className="mt-2 max-w-md text-sm text-muted-foreground">{isTeacher ? 'Publica una guía o un enlace y quedará organizado junto a la sesión correspondiente.' : 'Cuando tu docente publique una guía, aparecerá aquí y en el calendario.'}</p>{isTeacher && <Button className="mt-5" onClick={openCreate} disabled={!teacherReady}><Plus className="h-4 w-4" />Publicar el primero</Button>}</CardContent></Card>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {materials.map((material) => <MaterialCard key={material._id} material={material} isTeacher={isTeacher} onEdit={openEdit} onDelete={(item) => { if (window.confirm(`¿Eliminar “${item.title}”?`)) deleteMutation.mutate(item._id); }} />)}
+            {materials.map((material) => <MaterialCard key={material._id} material={material} isTeacher={isTeacher} onOpen={() => navigate(`/materials/${material._id}`)} onEdit={openEdit} onDelete={(item) => { if (window.confirm(`¿Eliminar “${item.title}”?`)) deleteMutation.mutate(item._id); }} />)}
           </div>
         )}
       </div>
@@ -184,10 +185,16 @@ const uniqueEntities = (items: Array<{ _id: string; name: string }>) => [...new 
 
 const FilterSelect = ({ label, value, options, onChange }: { label: string; value: string; options: Array<{ _id: string; name: string }>; onChange: (value: string) => void }) => <div className="space-y-1.5"><Label className="text-xs text-muted-foreground">{label}</Label><Select value={value || 'all'} onValueChange={(next) => onChange(next === 'all' ? '' : next)}><SelectTrigger className="h-9"><SelectValue placeholder={`Todos: ${label.toLowerCase()}`} /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem>{options.map((option) => <SelectItem key={option._id} value={option._id}>{option.name}</SelectItem>)}</SelectContent></Select></div>;
 
-const MaterialCard = ({ material, isTeacher, onEdit, onDelete }: { material: Material; isTeacher: boolean; onEdit: (material: Material) => void; onDelete: (material: Material) => void }) => {
+const MaterialCard = ({ material, isTeacher, onOpen, onEdit, onDelete }: { material: Material; isTeacher: boolean; onOpen: () => void; onEdit: (material: Material) => void; onDelete: (material: Material) => void }) => {
   const isLink = material.material_type === 'link';
   const href = isLink ? material.link_url : material.file_url;
-  return <Card className="group overflow-hidden border-border/70 shadow-sm transition-colors hover:border-primary/40"><CardHeader className="border-b border-border/60 bg-muted/15 pb-4"><div className="flex items-start justify-between gap-3"><div className="flex min-w-0 gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">{isLink ? <Link2 className="h-5 w-5" /> : <File className="h-5 w-5" />}</div><div className="min-w-0"><CardTitle className="truncate text-base">{material.title}</CardTitle><p className="mt-1 text-xs text-muted-foreground">{isLink ? 'Enlace web' : material.original_name || 'Archivo'}{!isLink && material.size_bytes > 0 ? ` · ${sizeLabel(material.size_bytes)}` : ''}</p></div></div><Badge variant="outline">{isLink ? 'LINK' : 'ARCHIVO'}</Badge></div></CardHeader><CardContent className="space-y-4 p-4"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">{material.session.area.name} · {material.session.group.name}</p><p className="mt-1 text-sm font-semibold">Clase programada</p><p className="mt-1 text-xs text-muted-foreground">{timeLabel(material.session)}</p></div>{material.description && <p className="line-clamp-2 text-sm text-muted-foreground">{material.description}</p>}<div className="flex items-center justify-between gap-2 border-t border-border/60 pt-3">{href ? <Button asChild size="sm"><a href={href} target="_blank" rel="noreferrer" download={!isLink ? material.original_name || undefined : undefined}><ExternalLink className="h-4 w-4" />{isLink ? 'Abrir enlace' : 'Abrir archivo'}</a></Button> : <span className="text-xs text-destructive">Recurso no disponible</span>}{isTeacher && <div className="flex gap-1"><Button variant="ghost" size="icon" aria-label={`Editar ${material.title}`} onClick={() => onEdit(material)}><Pencil className="h-4 w-4" /></Button><Button variant="ghost" size="icon" aria-label={`Eliminar ${material.title}`} onClick={() => onDelete(material)}><Trash2 className="h-4 w-4 text-destructive" /></Button></div>}</div></CardContent></Card>;
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onOpen();
+    }
+  };
+  return <Card role="link" tabIndex={0} aria-label={`Ver detalles de ${material.title}`} onClick={onOpen} onKeyDown={handleKeyDown} className="group cursor-pointer overflow-hidden border-border/70 shadow-sm transition-colors hover:border-primary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"><CardHeader className="border-b border-border/60 bg-muted/15 pb-4"><div className="flex items-start justify-between gap-3"><div className="flex min-w-0 gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">{isLink ? <Link2 className="h-5 w-5" /> : <File className="h-5 w-5" />}</div><div className="min-w-0"><CardTitle className="truncate text-base">{material.title}</CardTitle><p className="mt-1 text-xs text-muted-foreground">{isLink ? 'Enlace web' : material.original_name || 'Archivo'}{!isLink && material.size_bytes > 0 ? ` · ${sizeLabel(material.size_bytes)}` : ''}</p></div></div><Badge variant="outline">{isLink ? 'LINK' : 'ARCHIVO'}</Badge></div></CardHeader><CardContent className="space-y-4 p-4"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">{material.session.area.name} · {material.session.group.name}</p><p className="mt-1 text-sm font-semibold">Clase programada</p><p className="mt-1 text-xs text-muted-foreground">{timeLabel(material.session)}</p></div>{material.description && <p className="line-clamp-2 text-sm text-muted-foreground">{material.description}</p>}<div className="flex items-center justify-between gap-2 border-t border-border/60 pt-3">{href ? <Button asChild size="sm"><a href={href} target="_blank" rel="noreferrer" download={!isLink ? material.original_name || undefined : undefined} onClick={(event) => event.stopPropagation()}>{isLink ? <ExternalLink className="h-4 w-4" /> : <ExternalLink className="h-4 w-4" />}{isLink ? 'Abrir enlace' : 'Abrir archivo'}</a></Button> : <span className="text-xs text-destructive">Recurso no disponible</span>}{isTeacher && <div className="flex gap-1"><Button variant="ghost" size="icon" aria-label={`Editar ${material.title}`} onClick={(event) => { event.stopPropagation(); onEdit(material); }}><Pencil className="h-4 w-4" /></Button><Button variant="ghost" size="icon" aria-label={`Eliminar ${material.title}`} onClick={(event) => { event.stopPropagation(); onDelete(material); }}><Trash2 className="h-4 w-4 text-destructive" /></Button></div>}</div></CardContent></Card>;
 };
 
 const Field = ({ label, htmlFor, children }: { label: string; htmlFor?: string; children: React.ReactNode }) => <div className="space-y-2"><Label htmlFor={htmlFor}>{label}</Label>{children}</div>;
