@@ -159,6 +159,8 @@ Teacher:
 - `/groups/:id/grade-items`
 - `/groups/:id/scores`
 - `/period-results`
+- `/materials`
+- `/materials/:materialId`
 
 Student:
 
@@ -166,6 +168,8 @@ Student:
 - `/my-activities/:activityId`
 - `/my-grades`
 - `/my-results`
+- `/materials`
+- `/materials/:materialId`
 
 ## Autenticacion y estado
 
