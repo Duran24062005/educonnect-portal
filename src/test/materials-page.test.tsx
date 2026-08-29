@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import MaterialsPage from '@/pages/MaterialsPage';
 import { useAuthStore } from '@/store/auth';
@@ -25,6 +25,8 @@ const session = {
 const material = { _id: 'material-1', title: 'Guía de ecuaciones', description: 'Repaso', material_type: 'link' as const, link_url: 'https://example.com/guide', file_url: null, original_name: null, mime_type: null, size_bytes: 0, session, teacher: { _id: 'teacher-1', name: 'Docente' }, created_at: '2026-08-28T10:00:00Z', updated_at: '2026-08-28T10:00:00Z' };
 
 const renderPage = () => render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><MemoryRouter><MaterialsPage /></MemoryRouter></QueryClientProvider>);
+
+const LocationProbe = () => <span data-testid="location">{useLocation().pathname}</span>;
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -58,5 +60,15 @@ describe('MaterialsPage', () => {
 
     expect(screen.queryByRole('button', { name: 'Nueva sesión' })).not.toBeInTheDocument();
     expect(screen.getByRole('combobox')).toBeInTheDocument();
+  });
+
+  it('opens the material detail screen when selecting a material card', async () => {
+    useAuthStore.setState({ user: { _id: 'student-1', email: 'student@test.com', role: 'student', status: 'active', profile_complete: true } });
+    render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><MemoryRouter><LocationProbe /><MaterialsPage /></MemoryRouter></QueryClientProvider>);
+
+    const card = await screen.findByRole('link', { name: 'Ver detalles de Guía de ecuaciones' });
+    fireEvent.click(card);
+
+    expect(screen.getByTestId('location')).toHaveTextContent('/materials/material-1');
   });
 });
