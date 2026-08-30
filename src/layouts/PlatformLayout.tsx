@@ -1,4 +1,4 @@
-import { Building2, LogOut, Plus, ShieldCheck } from 'lucide-react';
+import { Building2, LogOut, Plus } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuthStore } from '@/store/auth';
 import { useNavigate } from 'react-router-dom';
@@ -6,6 +6,7 @@ import { SidebarProvider, Sidebar, SidebarContent, SidebarGroup, SidebarGroupCon
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { getRoleLabel } from '@/lib/auth';
+import BrandLogo from '@/components/BrandLogo';
 
 const platformItems = [
   { title: 'Instituciones', url: '/platform/institutions', icon: Building2 },
@@ -31,7 +32,7 @@ const PlatformLayout = ({ children }: { children: React.ReactNode }) => {
           <SidebarHeader className="p-4">
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-cyan-400 text-slate-950">
-                <ShieldCheck className="h-5 w-5" />
+                <BrandLogo variant="mark" className="h-8 w-8" alt="" />
               </div>
               <div className="min-w-0 group-data-[collapsible=icon]:hidden">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">EduConnect</p>

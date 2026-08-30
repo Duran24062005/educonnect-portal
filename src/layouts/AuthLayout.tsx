@@ -1,5 +1,5 @@
-import { GraduationCap } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import BrandLogo from '@/components/BrandLogo';
 
 const AuthLayout = ({ children }: { children: React.ReactNode }) => {
   return (
@@ -19,13 +19,9 @@ const AuthLayout = ({ children }: { children: React.ReactNode }) => {
         <div className="relative z-10">
           <a href="/">
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-lg bg-primary-foreground/20 flex items-center justify-center">
-                  <img
-                    src="https://edu-connect-beta.vercel.app/img/EduConectLogo.png"
-                    alt="Logo EduConnect"
-                    className="w-7 h-7 object-contain"
-                  />
-                </div>
+              <div className="w-10 h-10 rounded-lg bg-primary-foreground flex items-center justify-center">
+                <BrandLogo variant="mark" className="w-8 h-8" alt="" />
+              </div>
               <span className="text-2xl font-display font-bold text-primary-foreground">EduConnect</span>
             </div>
           </a>
@@ -50,8 +46,8 @@ const AuthLayout = ({ children }: { children: React.ReactNode }) => {
         </div>
         <div className="w-full max-w-md">
           <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
-            <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-              <GraduationCap className="w-6 h-6 text-primary-foreground" />
+            <div className="w-10 h-10 rounded-lg bg-primary-foreground flex items-center justify-center">
+              <BrandLogo variant="mark" className="w-8 h-8" alt="" />
             </div>
             <span className="text-2xl font-display font-bold text-foreground">EduConnect</span>
           </div>

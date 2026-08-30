@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import BrandLogo from '@/components/BrandLogo';
 
 const stats = [
   { value: '1,280', label: 'Estudiantes activos' },
@@ -44,19 +45,13 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-40 border-b border-border/70 bg-background/90 backdrop-blur">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg border border-border/70 bg-card/80 backdrop-blur">
-              <img
-                src="https://edu-connect-beta.vercel.app/img/EduConectLogo.png"
-                alt="Logo EduConnect"
-                className="w-7 h-7 object-contain"
-              />
-            </div>
-            <div>
-              <p className="font-display font-bold leading-none text-foreground">EduConnect</p>
-              <p className="mt-1 text-xs leading-none text-muted-foreground">Plataforma institucional educativa</p>
-            </div>
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+          <div className="flex h-14 w-20 shrink-0 items-center justify-center rounded-lg bg-white px-1 py-0.5 shadow-sm">
+            <BrandLogo
+              variant="full"
+              className="h-full w-full"
+              alt="EduConnect — Gestión académica conectada"
+            />
           </div>
 
           <div className="flex items-center gap-3">

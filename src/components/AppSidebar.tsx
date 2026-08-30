@@ -24,6 +24,7 @@ import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth';
 import { normalizeRole } from '@/lib/auth';
+import BrandLogo from '@/components/BrandLogo';
 import {
   Sidebar,
   SidebarContent,
@@ -138,12 +139,8 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="border-r-0">
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center shrink-0">
-            <img
-                src="https://edu-connect-beta.vercel.app/img/EduConectLogo.png"
-                alt="Logo EduConnect"
-                className="w-7 h-7 object-contain"
-              />
+          <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shrink-0">
+            <BrandLogo variant="mark" className="w-7 h-7" alt="" />
           </div>
           {!collapsed && (
             <span className="text-lg font-display font-bold text-sidebar-foreground">
